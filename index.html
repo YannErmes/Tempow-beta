@@ -4018,7 +4018,12 @@ function updateBadges() {
 /* ═══════════════════════════════════════════
    ════════  FLOW TIMER  ════════════════════
 ═══════════════════════════════════════════ */
-let flowTasks = [];
+// ===== UNIFIED TASK SYSTEM =====
+// Both timer and calendar use the SAME task list
+const CLOUD_SYNC_URL = 'https://script.google.com/macros/s/AKfycbzwHQSK2AC3uBqzwCAVZcYa_XI-SEu8Y58kfQXy8BK-jGXCQ-IYAFt1YxlFw2hZ6FOV/exec';
+let allTasks = [];  // Single source of truth for all tasks
+let flowTasks = [];  // Deprecated alias - automatically synced with allTasks
+let calendarTasks = [];  // Deprecated alias - automatically synced with allTasks
 let discardedTasks = [];
 let trashedTasks = [];
 let dayStartTime = null; // Timestamp when user clicks "START MY DAY"
@@ -4388,15 +4393,18 @@ function updateHoursTracker() {
 }
 
 function discardTask(id) {
-  const t = flowTasks.find(x => x.id === id);
+  const t = allTasks.find(x => x.id === id);
   if (!t) return;
   
   // Move task to discarded
   discardedTasks.push({...t, discardedAt: Date.now()});
-  flowTasks = flowTasks.filter(x => x.id !== id);
+  allTasks = allTasks.filter(x => x.id !== id);
+  flowTasks = allTasks;  // Sync
+  calendarTasks = allTasks;  // Sync
   tray = tray.filter(x => x.id !== id);
   
   renderFlowList();
+  renderCalendarView();  // Update calendar too
   updateHoursTracker();
 }
 
@@ -4407,10 +4415,13 @@ function restoreTask(id) {
   // Move back
   const taskToRestore = {...t};
   delete taskToRestore.discardedAt;
-  flowTasks.push(taskToRestore);
+  allTasks.push(taskToRestore);
+  flowTasks = allTasks;  // Sync
+  calendarTasks = allTasks;  // Sync
   discardedTasks = discardedTasks.filter(x => x.id !== id);
   
   renderFlowList();
+  renderCalendarView();  // Update calendar too
   updateHoursTracker();
 }
 
@@ -4649,30 +4660,28 @@ function addFlowTask() {
     splits: [] // Array of split points: [{position: 0-1 (percentage), secs: seconds into task}]
   };
   
-  // If scheduled to calendar, add to calendar instead
+  // ===== UNIFIED SYSTEM: All tasks go to allTasks =====
   if (scheduleDate && scheduleHour !== '') {
-    const calTask = {
-      id: taskObj.id,
-      name,
-      scheduledDate: scheduleDate,
-      hour: parseInt(scheduleHour),
-      duration: dur,
-      notes: '',
-      repeatDays: null,
-      createdAt: Date.now(),
-      completed: false
-    };
-    calendarTasks.push(calTask);
-    saveCalendarData();
+    // Add with scheduling info to the unified task list
+    taskObj.scheduledDate = scheduleDate;
+    taskObj.scheduledHour = parseInt(scheduleHour);
+    allTasks.push(taskObj);
+    flowTasks = allTasks;  // Sync
+    calendarTasks = allTasks;  // Sync
+    saveFlowData();
     alert(`Task "${name}" scheduled to calendar on ${new Date(scheduleDate).toLocaleDateString()} at ${String(parseInt(scheduleHour)).padStart(2, '0')}:00`);
     closeModal();
     renderFlowList();
+    renderCalendarView();  // Update calendar too
     return;
   }
   
-  flowTasks.push(taskObj);
-  closeModal(); 
+  allTasks.push(taskObj);
+  flowTasks = allTasks;  // Sync
+  calendarTasks = allTasks;  // Sync
+  closeModal();
   renderFlowList();
+  renderCalendarView();  // Update calendar too
 }
 
 // ── Filter and View Mode ──────────────────────────────────────
@@ -5738,11 +5747,23 @@ function updateFlowStats() {
 function renderFlowList() {
   closeTip();
   const list = document.getElementById('task-list');
-  document.getElementById('empty-state').style.display = flowTasks.filter(t => !t.isMinimized).length===0 ? 'block' : 'none';
+  document.getElementById('empty-state').style.display = allTasks.filter(t => !t.isMinimized).length===0 ? 'block' : 'none';
   list.innerHTML = '';
   
+  // ===== Normalize calendar tasks for timer display =====
+  allTasks.forEach(t => {
+    // If task came from calendar and has duration but no allocSecs, convert it
+    if (t.duration && !t.allocSecs) {
+      t.allocSecs = t.duration * 60;  // Convert minutes to seconds
+    }
+    // Ensure essential properties exist
+    if (!t.state) t.state = 'idle';
+    if (!t.segments) t.segments = [];
+    if (!t.splits) t.splits = [];
+  });
+  
   // Filter tasks based on active filters AND exclude minimized tasks
-  const filteredTasks = flowTasks.filter(t => !t.isMinimized && shouldShowTask(t));
+  const filteredTasks = allTasks.filter(t => !t.isMinimized && shouldShowTask(t));
   
   // Sort tasks: running > paused (break) > idle > done (FULLY AUTOMATIC)
   const sortedTasks = [...filteredTasks].sort((a, b) => {
@@ -8128,7 +8149,7 @@ const FLOW_KEY  = 'flow_tasks_v2';
 function saveFlowData() {
   try {
     const dataToSave = {
-      tasks: flowTasks,
+      tasks: allTasks,  // ===== Use unified allTasks =====
       discardedTasks: discardedTasks,
       trashedTasks: trashedTasks,
       dayStartTime: dayStartTime,
@@ -8254,7 +8275,7 @@ async function loadFlowData() {
     }
     
     if (data.tasks && Array.isArray(data.tasks)) {
-      flowTasks = data.tasks.map(t => {
+      allTasks = data.tasks.map(t => {  // ===== Load into unified allTasks =====
         if (!t.segments) {
           t.segments = [];
           if (t.workedSecs > 0) t.segments.push({type:'work',secs:t.workedSecs,startTs:null,endTs:null,note:'',breakLimitSecs:0});
@@ -8265,6 +8286,8 @@ async function loadFlowData() {
         if (!t.splits) t.splits = []; // Initialize splits array for split timing feature
         return t;
       });
+      flowTasks = allTasks;  // Sync alias
+      calendarTasks = allTasks;  // Sync alias
     }
 
     if (window.api && window.api.getElapsedTime) {
@@ -8693,7 +8716,8 @@ function confirmMergeTasks() {
   primaryTask.allocSecs = newDuration;
   
   // Remove secondary task
-  flowTasks = flowTasks.filter(t => t.id !== secondaryTask.id);
+  allTasks = allTasks.filter(t => t.id !== secondaryTask.id);
+  flowTasks = allTasks;  // Keep backward compat
   
   // Close modal and re-render
   closeMergeModal();
@@ -8917,7 +8941,6 @@ document.addEventListener('keydown', () => {
 ═══════════════════════════════════════════ */
 
 // Calendar state
-let calendarTasks = [];
 let calendarCurrentDate = new Date();
 let calendarCurrentView = 'month';
 let calTaskSelectedDates = [];
@@ -8928,7 +8951,6 @@ function initCalendarPage() {
   calendarCurrentDate = new Date();
   renderCalendarView();
   renderTodaysTasks();
-  updateGoogleSyncStatus();
 }
 
 function setCalendarView(view) {
@@ -9214,16 +9236,23 @@ function saveCalendarTask() {
     scheduledDate: selectedDates[0],
     scheduledDates: selectedDates,
     hour,
-    duration,
+    duration,  // Keep for calendar display
+    allocSecs: duration * 60,  // ===== Convert to seconds for timer =====
     notes,
     createdAt: Date.now(),
-    completed: false
+    completed: false,
+    state: 'idle',  // Default state for timer
+    segments: [],  // For timer tracking
+    splits: []  // For split timing
   };
   
-  calendarTasks.push(task);
-  saveCalendarData();
+  allTasks.push(task);  // ===== Add to unified allTasks =====
+  flowTasks = allTasks;  // Sync
+  calendarTasks = allTasks;  // Sync
+  saveFlowData();  // Save unified data
   closeCalendarTaskModal();
   renderCalendarView();
+  renderFlowList();  // Update timer too
   renderTodaysTasks();
   alert(`Task "${name}" added to calendar for ${selectedDates.length} date${selectedDates.length === 1 ? '' : 's'}!`);
 }
@@ -9398,117 +9427,34 @@ function transferToTimer(taskId, scheduledDate = null) {
 }
 
 function transferAllCalendarTasksToTimer() {
-  if (calendarTasks.length === 0) {
-    alert('⚠️ No tasks in calendar to transfer');
-    return;
-  }
-  
-  const confirmed = confirm(`Transfer all ${calendarTasks.length} calendar task${calendarTasks.length !== 1 ? 's' : ''} to the Timer page?\n\nAll task state including breaks, current status, and history will be preserved.`);
-  if (!confirmed) return;
-  
-  let transferredCount = 0;
-  
-  calendarTasks.forEach(task => {
-    const targetDate = task.scheduledDate || (Array.isArray(task.scheduledDates) ? task.scheduledDates[0] : null);
-    
-    // Create timer task from calendar task, preserving all state
-    const newTask = {
-      id: Date.now() + Math.random(),
-      name: task.name,
-      allocSecs: task.duration * 60,
-      state: task.state || 'idle',
-      segments: task.segments ? JSON.parse(JSON.stringify(task.segments)) : [],
-      dateAdded: task.dateAdded || Date.now(),
-      isUntimed: false,
-      notes: task.notes || '',
-      scheduledDate: targetDate,
-      scheduledHour: task.hour,
-      splits: task.splits ? JSON.parse(JSON.stringify(task.splits)) : [],
-      pausedAt: task.pausedAt,
-      completedAt: task.completedAt,
-      breaks: task.breaks ? JSON.parse(JSON.stringify(task.breaks)) : []
-    };
-    
-    flowTasks.push(newTask);
-    transferredCount++;
-  });
-  
-  // Save updated timer tasks
-  saveFlowData();
-  renderFlowList();
-  
-  alert(`✓ ${transferredCount} task${transferredCount !== 1 ? 's' : ''} transferred to Timer!\n\nAll task state, breaks, and history have been preserved.`);
-  
-  // Switch to timer page
-  switchPage('flow');
+  // ===== With unified task system, all calendar tasks are already on timer =====
+  alert('✓ All tasks are shared between Timer and Calendar!\n\nNo transfer needed - add tasks on either page and they appear on both.');
 }
 
 function importAllTimerTasksToCalendar() {
-  if (flowTasks.length === 0) {
-    alert('⚠️ No tasks on the Timer page to import');
-    return;
-  }
-
-  const confirmed = confirm(`Import all ${flowTasks.length} timer task${flowTasks.length !== 1 ? 's' : ''} into the Calendar page?\n\nAll task state including current breaks, status, and history will be preserved.`);
-  if (!confirmed) return;
-
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  const todayStr = `${year}-${month}-${day}`;
-
-  let importedCount = 0;
-  flowTasks.forEach(task => {
-    const scheduledDate = task.scheduledDate || todayStr;
-    const hour = (typeof task.scheduledHour === 'number' && !Number.isNaN(task.scheduledHour)) ? task.scheduledHour : 9;
-    const duration = task.allocSecs > 0 ? Math.max(1, Math.round(task.allocSecs / 60)) : 60;
-
-    const calTask = {
-      id: Date.now() + Math.random(),
-      name: task.name,
-      scheduledDate,
-      scheduledDates: [scheduledDate],
-      hour,
-      duration,
-      notes: task.notes || '',
-      dateAdded: task.dateAdded || Date.now(),
-      createdAt: task.dateAdded || Date.now(),
-      completed: task.state === 'done',
-      // Preserve full task evolution
-      state: task.state || 'idle',
-      segments: task.segments ? JSON.parse(JSON.stringify(task.segments)) : [],
-      splits: task.splits ? JSON.parse(JSON.stringify(task.splits)) : [],
-      pausedAt: task.pausedAt,
-      completedAt: task.completedAt,
-      breaks: task.breaks ? JSON.parse(JSON.stringify(task.breaks)) : [],
-      isUntimed: task.isUntimed
-    };
-
-    calendarTasks.push(calTask);
-    importedCount++;
-  });
-
-  saveCalendarData();
-  renderCalendarView();
-  renderTodaysTasks();
-  alert(`✓ Imported ${importedCount} task${importedCount !== 1 ? 's' : ''} from Timer to Calendar.\n\nAll task state, breaks, and history have been preserved.`);
+  // ===== With unified task system, all timer tasks are already on calendar =====
+  alert('✓ All tasks are shared between Timer and Calendar!\n\nNo import needed - add tasks on either page and they appear on both.');
 }
 
 function deleteCalendarTask(taskId) {
   const normalizedId = String(taskId);
-  const initialLength = calendarTasks.length;
-  calendarTasks = calendarTasks.filter(t => String(t.id) !== normalizedId);
-  if (calendarTasks.length === initialLength) return;
+  const initialLength = allTasks.length;
+  allTasks = allTasks.filter(t => String(t.id) !== normalizedId);  // ===== Delete from unified allTasks =====
+  flowTasks = allTasks;  // Sync
+  calendarTasks = allTasks;  // Sync
+  if (allTasks.length === initialLength) return;
 
-  saveCalendarData();
+  saveFlowData();
   renderCalendarView();
+  renderFlowList();  // Update timer too
   renderTodaysTasks();
 }
 
 function saveCalendarData() {
   try {
-    localStorage.setItem('calendar_tasks', JSON.stringify(calendarTasks));
+    // ===== Unified system: calendar tasks are in allTasks =====
+    // Just call saveFlowData which saves allTasks
+    saveFlowData();
   } catch(e) {
     console.error('Error saving calendar data:', e);
   }
@@ -9516,10 +9462,8 @@ function saveCalendarData() {
 
 function loadCalendarData() {
   try {
-    const saved = localStorage.getItem('calendar_tasks');
-    if (saved) {
-      calendarTasks = JSON.parse(saved);
-    }
+    // ===== Unified system: calendar tasks are in allTasks =====
+    // Tasks are already loaded by loadFlowData
   } catch(e) {
     console.error('Error loading calendar data:', e);
   }
@@ -9567,9 +9511,6 @@ setInterval(() => {
 /* ═══════════════════════════════════════════
    CLOUD SYNC FUNCTIONS
 ═══════════════════════════════════════════ */
-
-// Global AppScript URL - all users use the same backend
-const CLOUD_SYNC_URL = 'https://script.google.com/macros/s/AKfycbzwHQSK2AC3uBqzwCAVZcYa_XI-SEu8Y58kfQXy8BK-jGXCQ-IYAFt1YxlFw2hZ6FOV/exec';
 
 // Simple hash function for generating sync ID
 function simpleHash(str) {
@@ -9711,10 +9652,10 @@ async function confirmSync() {
     
     const existingWorkspace = getWorkspaceSettings();
     
-    // Get all tasks from both flowTasks and calendarTasks
+    // Get all tasks from the unified task list
     const allTasksToSync = {
-      flowTasks: flowTasks || [],
-      calendarTasks: calendarTasks || []
+      flowTasks: allTasks || [],
+      calendarTasks: allTasks || []
     };
     const tasksToSync = JSON.stringify(allTasksToSync, null, 2);
     
@@ -9992,19 +9933,22 @@ function doLoadTasks() {
   
   console.log('Loading tasks from cloud:', tasksData);
   
-  // Handle both old format (array) and new format (object with flowTasks + calendarTasks)
+  // ===== Unified system: merge all tasks into allTasks =====
   if (Array.isArray(tasksData)) {
-    // Legacy format: just flowTasks array
-    flowTasks = tasksData;
-    calendarTasks = calendarTasks || [];
+    // Legacy format: just array of tasks
+    allTasks = tasksData;
   } else if (tasksData && typeof tasksData === 'object') {
-    // New format: {flowTasks: [], calendarTasks: []}
-    flowTasks = Array.isArray(tasksData.flowTasks) ? tasksData.flowTasks : [];
-    calendarTasks = Array.isArray(tasksData.calendarTasks) ? tasksData.calendarTasks : [];
+    // New format: {flowTasks: [], calendarTasks: []} - merge them
+    const flowArr = Array.isArray(tasksData.flowTasks) ? tasksData.flowTasks : [];
+    const calArr = Array.isArray(tasksData.calendarTasks) ? tasksData.calendarTasks : [];
+    allTasks = [...flowArr, ...calArr];
   } else {
-    flowTasks = [];
-    calendarTasks = [];
+    allTasks = [];
   }
+  
+  // Keep aliases in sync
+  flowTasks = allTasks;
+  calendarTasks = allTasks;
 
   // Persist workspace ID from loaded info if available
   if (syncInfo && syncInfo.workspaceId) {
@@ -10018,14 +9962,14 @@ function doLoadTasks() {
   
   // Save to local storage via Electron if available
   if (window.electron && window.electron.invoke) {
-    window.electron.invoke('save-tasks', flowTasks).then(() => {
+    window.electron.invoke('save-tasks', allTasks).then(() => {  // ===== Save unified allTasks =====
       console.log('Tasks saved successfully');
-      const totalTasks = (flowTasks.length || 0) + (calendarTasks.length || 0);
-      showLoadStatus(`✓ Loaded ${totalTasks} tasks from cloud! (${flowTasks.length} timer, ${calendarTasks.length} calendar)`, 'success');
+      const totalTasks = allTasks.length;
+      showLoadStatus(`✓ Loaded ${totalTasks} task${totalTasks !== 1 ? 's' : ''} from cloud!`, 'success');
       
       // Update UI for both timer and calendar
       renderFlowList();
-      updateStats();
+      updateFlowStats();
       renderCalendarView();
       renderTodaysTasks();
       
@@ -10043,14 +9987,13 @@ function doLoadTasks() {
     // Fallback for browser or offline - just save to localStorage
     try {
       saveFlowData();
-      saveCalendarData();
       console.log('Tasks saved to local storage');
-      const totalTasks = (flowTasks.length || 0) + (calendarTasks.length || 0);
-      showLoadStatus(`✓ Loaded ${totalTasks} tasks from cloud! (${flowTasks.length} timer, ${calendarTasks.length} calendar)`, 'success');
+      const totalTasks = allTasks.length;
+      showLoadStatus(`✓ Loaded ${totalTasks} task${totalTasks !== 1 ? 's' : ''} from cloud!`, 'success');
       
       // Update UI for both timer and calendar
       renderFlowList();
-      updateStats();
+      updateFlowStats();
       renderCalendarView();
       renderTodaysTasks();
       
