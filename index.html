@@ -66,6 +66,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
   display: flex; align-items: center; gap: 0;
   background: var(--surface); border-bottom: 1px solid var(--border);
   padding: 0 32px; position: sticky; top: 0; z-index: 200;
+  justify-content: space-between;
 }
 .nav-logo {
   font-family: var(--font-display); font-weight: 800; font-size: 19px;
@@ -84,6 +85,63 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .nav-tab:hover { color: var(--text); }
 .nav-tab.active { color: var(--active); border-bottom-color: var(--active); }
 .nav-tab.clock-tab.active { color: #7b9fff; border-bottom-color: #7b9fff; }
+
+/* Hamburger Menu */
+.hamburger-menu {
+  display: none !important;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 8px;
+  color: var(--text);
+}
+.hamburger-menu span {
+  width: 24px;
+  height: 3px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.hamburger-menu.active span:nth-child(1) {
+  transform: rotate(45deg) translate(8px, 8px);
+}
+.hamburger-menu.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger-menu.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(7px, -7px);
+}
+
+/* Mobile Menu Dropdown */
+.mobile-nav-menu {
+  display: none;
+  position: absolute;
+  top: 60px;
+  right: 0;
+  left: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-direction: column;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 199;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.mobile-nav-menu.active {
+  display: flex;
+}
+.mobile-nav-menu .nav-tab {
+  border-bottom: none;
+  border-left: 3px solid transparent;
+  padding: 16px 24px;
+  text-align: left;
+}
+.mobile-nav-menu .nav-tab.active {
+  border-left-color: var(--active);
+  background: var(--active-dim);
+}
 
 /* transfer badge on nav */
 .transfer-badge {
@@ -2480,6 +2538,8 @@ body.text-mode .btn .btn-text {
   .tmpw-inbox { margin-left:16px; margin-right:16px; }
   .app-nav { padding:0 14px; }
   .nav-tab { padding:16px 14px; font-size:11px; }
+  .hamburger-menu { display: flex !important; }
+  .nav-tabs { display: none !important; }
   .task-estimate { display: block; width: 100%; }
   .filter-bar { flex-direction: column; align-items: flex-start; gap: 12px; }
   .filter-section { width: 100%; }
@@ -2524,8 +2584,8 @@ body.text-mode .btn .btn-text {
 }
 
 @media (max-width:900px) {
-  .app-nav { padding: 0 16px; }
-  .nav-tabs { flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .app-nav { padding: 0 16px; justify-content: space-between; }
+  .nav-tabs { flex: 1; }
   .nav-tab { padding: 14px 12px; min-width: 110px; }
   .calendar-container { flex-direction: column; padding: 16px; }
   .calendar-main { min-height: 500px; }
@@ -2563,10 +2623,82 @@ body.text-mode .btn .btn-text {
   .clock-btn, .btn-report, .btn-add { padding: 10px 12px; font-size: 13px; }
   .clock-time-inputs input { width: 40px; }
   .clock-task-list { max-height: 240px; }
-  .flow-main { padding: 20px 12px 120px; }
-  .flow-header, .flow-stats, .data-bar, .filter-bar { padding-left: 12px; padding-right: 12px; }
-  .filter-bar { gap: 10px; }
+}
+
+/* Mobile-first optimizations */
+@media (max-width:768px) {
+  .app-nav { padding: 0 12px; }
+  .nav-logo { font-size: 16px; margin-right: 12px; }
+  .nav-logo span { display: none; }
+  .sidebar-section { padding: 12px; border-radius: 10px; }
+  .sidebar-title { font-size: 13px; }
+  .btn { font-size: 13px; padding: 12px 16px; border-radius: 8px; }
+  .btn-add, .btn-report { width: 100%; margin-bottom: 8px; }
+  .modal { width: min(95vw, 480px); padding: 20px; }
+  .field { margin-bottom: 14px; }
+  .field label { font-size: 12px; }
+  .field input, .field textarea { font-size: 14px; padding: 10px; }
+  .flow-header { padding: 16px 12px; gap: 8px; }
+  .flow-header-actions { gap: 6px; }
+  .btn-add { padding: 10px 14px; font-size: 12px; }
+  .task-inner { grid-template-columns: 1fr; padding: 14px; gap: 10px; }
+  .timer-block { text-align: left; }
+  .timer-digits { font-size: 20px; }
+  .stat { padding: 12px 14px; margin-right: 14px; font-size: 11px; }
+  .stat-label { font-size: 9px; }
+  .stat-value { font-size: 16px; }
+}
+
+@media (max-width:480px) {
+  .app-nav { padding: 0 8px; }
+  .nav-logo { font-size: 14px; margin-right: 8px; }
+  .hamburger-menu { gap: 4px; padding: 6px; }
+  .hamburger-menu span { width: 20px; height: 2px; }
+  .sidebar-section { padding: 10px; margin-bottom: 10px; border-radius: 8px; }
+  .sidebar-title { font-size: 12px; margin-bottom: 10px; }
+  .btn { font-size: 12px; padding: 10px 12px; width: 100%; }
+  .modal { width: min(90vw, 360px); padding: 16px; }
+  .field label { font-size: 11px; }
+  .field input, .field textarea { font-size: 13px; padding: 8px; }
+  .flow-header { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
+  .flow-header-actions { gap: 4px; }
+  .flow-header-date { font-size: 10px; }
+  .btn-add { font-size: 11px; padding: 8px 10px; }
+  .task-name { font-size: 14px; }
+  .task-meta { font-size: 10px; }
+  .task-meta span { margin-right: 8px; }
+  .timer-digits { font-size: 18px; }
+  .timer-label { font-size: 8px; }
+  .flow-main { padding: 12px; padding-bottom: 100px; }
+  .flow-stats { flex-direction: column; gap: 8px; padding: 12px; }
+  .stat { padding: 10px 0; margin-right: 0; border-right: none; border-bottom: 1px solid var(--border); }
+  .stat:last-child { border-bottom: none; }
+  .data-bar { flex-direction: column; gap: 10px; padding: 12px; }
+  .filter-bar { flex-direction: column; gap: 8px; padding: 12px; }
   .filter-section { width: 100%; }
+  .filter-label { font-size: 10px; }
+  .filter-dropdown { font-size: 11px; padding: 8px; width: 100%; }
+  .clock-task-list { max-height: 200px; }
+  .clock-task-item { flex-direction: column; }
+  .clock-swatch { width: 32px; height: 32px; }
+  .clock-task-meta { min-width: auto; }
+  #clock { height: 280px; width: 280px; }
+  #clock-container { padding: 12px; gap: 12px; }
+  .clock-left { padding: 0; }
+  .clock-right { width: 100%; max-height: 300px; }
+  .calendar-header { padding: 12px; gap: 8px; }
+  .calendar-nav-btn { padding: 8px 10px; font-size: 12px; }
+  .calendar-current-date { font-size: 12px; }
+  .calendar-today-btn { padding: 8px 10px; font-size: 12px; }
+  .calendar-view-btn { font-size: 11px; padding: 8px; }
+  .calendar-week-task { font-size: 10px; padding: 6px; }
+  .transfer-tray { padding: 8px 12px; gap: 8px; flex-wrap: wrap; }
+  .tray-pill { font-size: 10px; padding: 4px 8px 4px 6px; }
+  .tray-btn { padding: 6px 10px; font-size: 10px; }
+  .collapsible-section { max-height: 700px; }
+  .section-toggle { padding: 2px 4px; font-size: 12px; }
+  .modal-actions { gap: 8px; }
+  .modal-actions button { padding: 10px; font-size: 12px; }
 }
 
 </style>
@@ -2616,7 +2748,33 @@ body.text-mode .btn .btn-text {
       ❓ Help
     </button>
   </div>
+  <button class="hamburger-menu" id="hamburgerMenu" onclick="toggleMobileMenu()">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
 </nav>
+
+<!-- Mobile Navigation Menu -->
+<div class="mobile-nav-menu" id="mobileNavMenu">
+  <button class="nav-tab" onclick="switchPage('flow'); closeMobileMenu();">
+    ⏱ Timer
+  </button>
+  <button class="nav-tab clock-tab" onclick="switchPage('clock'); closeMobileMenu();">
+    ◕ 24h Clock
+    <span class="transfer-badge" id="clock-badge-mobile"></span>
+  </button>
+  <button class="nav-tab" onclick="switchPage('calendar'); closeMobileMenu();">
+    📅 Calendar
+    <span class="transfer-badge" id="calendar-badge-mobile"></span>
+  </button>
+  <button class="nav-tab" onclick="switchPage('report'); closeMobileMenu();">
+    📊 Reports
+  </button>
+  <button class="nav-tab" onclick="switchPage('help'); closeMobileMenu();">
+    ❓ Help
+  </button>
+</div>
 
 <!-- ══ ALARM BANNERS ══ -->
 <div id="alarmBanner">
@@ -2748,6 +2906,7 @@ body.text-mode .btn .btn-text {
             <option value="all">All Time</option>
             <option value="today">Today</option>
             <option value="yesterday">Yesterday</option>
+            <option value="tomorrow">Tomorrow</option>
             <option value="week">This Week</option>
             <option value="month">This Month</option>
             <option value="year">This Year</option>
@@ -2984,17 +3143,7 @@ body.text-mode .btn .btn-text {
         <div id="emailSyncStatus" style="font-size: 10px; color: var(--muted); margin-top: 6px;"></div>
       </div>
 
-      <div class="sidebar-section">
-        <div class="sidebar-title">⏱ Transfer to Timer</div>
-        <button onclick="transferAllCalendarTasksToTimer()" class="btn btn-report" style="width: 100%; background: rgba(93,224,168,0.2); border-color: var(--active); color: var(--active);">⏱ Send All to Timer</button>
-        <div style="font-size: 10px; color: var(--muted2); margin-top: 8px;">Transfers all calendar tasks to the Timer page for execution.</div>
-      </div>
 
-      <div class="sidebar-section">
-        <div class="sidebar-title">⏳ Import from Timer</div>
-        <button onclick="importAllTimerTasksToCalendar()" class="btn btn-report" style="width: 100%; background: rgba(93,224,168,0.2); border-color: var(--active); color: var(--active);">⏳ Import All from Timer</button>
-        <div style="font-size: 10px; color: var(--muted2); margin-top: 8px;">Creates calendar entries for all Timer tasks so they appear in the Calendar page.</div>
-      </div>
 
     </div>
   </div>
@@ -3847,6 +3996,33 @@ function switchPage(name) {
   }
 }
 
+function toggleMobileMenu() {
+  const hamburger = document.getElementById('hamburgerMenu');
+  const mobileMenu = document.getElementById('mobileNavMenu');
+  if (!hamburger || !mobileMenu) return;
+  hamburger.classList.toggle('active');
+  mobileMenu.classList.toggle('active');
+}
+
+function closeMobileMenu() {
+  const hamburger = document.getElementById('hamburgerMenu');
+  const mobileMenu = document.getElementById('mobileNavMenu');
+  if (!hamburger || !mobileMenu) return;
+  hamburger.classList.remove('active');
+  mobileMenu.classList.remove('active');
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', function(event) {
+    const hamburger = document.getElementById('hamburgerMenu');
+    const mobileMenu = document.getElementById('mobileNavMenu');
+    const nav = document.querySelector('.app-nav');
+    if (nav && !nav.contains(event.target) && mobileMenu && mobileMenu.classList.contains('active')) {
+      closeMobileMenu();
+    }
+  });
+}
+
 function toggleAcc(trigger) {
   const body = trigger.nextElementSibling;
   const isOpen = trigger.classList.contains('open');
@@ -4049,7 +4225,7 @@ let activeFilters = {
 };
 
 // Date filtering settings
-let activeDateRange = 'all'; // 'all', 'today', 'yesterday', 'week', 'month', 'year', 'custom'
+let activeDateRange = 'all'; // 'all', 'today', 'yesterday', 'tomorrow', 'week', 'month', 'year', 'custom'
 let customDateFilter = null; // ISO date string for custom date filter
 
 function fmtF(s) {
@@ -4802,6 +4978,11 @@ function isTaskInDateRange(task) {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       return taskDate >= yesterday && taskDate < today;
+    
+    case 'tomorrow':
+      const dayAfterTomorrow = new Date(tomorrow);
+      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+      return taskDate >= tomorrow && taskDate < dayAfterTomorrow;
     
     case 'week':
       return taskDate >= weekStart && taskDate < tomorrow;
@@ -8453,9 +8634,42 @@ function confirmImport() {
 }
 
 function clearAllFlowTasks() {
-  if (!confirm('Clear all timer tasks? This cannot be undone.')) return;
-  flowTasks = [];
+  const rangeLabel = activeDateRange === 'all' ? 'all time' :
+    activeDateRange === 'today' ? 'today' :
+    activeDateRange === 'yesterday' ? 'yesterday' :
+    activeDateRange === 'tomorrow' ? 'tomorrow' :
+    activeDateRange === 'week' ? 'this week' :
+    activeDateRange === 'month' ? 'this month' :
+    activeDateRange === 'year' ? 'this year' :
+    activeDateRange === 'custom' && customDateFilter ? customDateFilter : 'the selected date range';
+
+  const confirmMessage = activeDateRange === 'all'
+    ? 'Clear all timer tasks? This cannot be undone.'
+    : `Clear all timer tasks for ${rangeLabel}? This cannot be undone.`;
+
+  if (!confirm(confirmMessage)) return;
+
+  if (activeDateRange === 'all') {
+    allTasks = [];
+    flowTasks = allTasks;
+    calendarTasks = allTasks;
+    renderFlowList();
+    saveFlowData();
+    return;
+  }
+
+  const beforeCount = allTasks.length;
+  allTasks = allTasks.filter(task => !isTaskInDateRange(task));
+  flowTasks = allTasks;
+  calendarTasks = allTasks;
+  const deletedCount = beforeCount - allTasks.length;
+
+  if (deletedCount === 0) {
+    alert(`No tasks found for ${rangeLabel}.`);
+  }
+
   renderFlowList();
+  saveFlowData();
 }
 
 function downloadReport() {
@@ -9105,7 +9319,6 @@ function renderWeekView() {
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
-              <button class="calendar-week-tooltip-btn" onclick="transferToTimer('${task.id}', '${currentDateStr}')" title="Move this task to Timer">→</button>
               <button class="calendar-week-tooltip-delete-btn" onclick="deleteCalendarTask('${task.id}')" title="Delete task">✕</button>
             </div>
           </div>`;
@@ -9140,7 +9353,6 @@ function renderDayView() {
           <div class="task-item-cal-time">${String(task.hour).padStart(2, '0')}:00 - ${task.duration} min</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
-          <button onclick="transferToTimer('${task.id}')" style="padding: 6px; background: transparent; color: var(--active); border: 1px solid var(--border); border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;" onmouseover="this.style.background='var(--active-dim)'" onmouseout="this.style.background='transparent'">→</button>
           <button onclick="deleteCalendarTask('${task.id}')" style="padding: 6px; background: transparent; color: #ff5454; border: 1px solid rgba(255,80,80,0.3); border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;" onmouseover="this.style.background='rgba(255, 80, 80, 0.12)'" onmouseout="this.style.background='transparent'">✕</button>
         </div>
       </div>`;
@@ -9188,7 +9400,6 @@ function renderTodaysTasks() {
       <div class="task-item-cal-name">${task.name}</div>
       <div class="task-item-cal-time">${String(task.hour).padStart(2, '0')}:00 (${task.duration} min)</div>
       <div style="display:flex;gap:10px;align-items:center;">
-        <div style="font-size: 9px; color: var(--muted); cursor: pointer;" onclick="transferToTimer('${task.id}')">➜ Move to Timer</div>
         <div style="font-size: 9px; color: #ff5454; cursor: pointer;" onclick="deleteCalendarTask('${task.id}')">✕ Delete</div>
       </div>
     </div>
@@ -9277,13 +9488,8 @@ function loadUserEmailFromStorage() {
 }
 
 function loadAppScriptUrlFromStorage() {
-  const savedUrl = localStorage.getItem('appscript_url') || '';
-  if (!savedUrl) {
-    const url = prompt('Paste your Google Apps Script URL:\n\nhttps://script.google.com/macros/s/YOUR_SCRIPT_ID/exec');
-    if (url && url.includes('script.google.com')) {
-      localStorage.setItem('appscript_url', url);
-    }
-  }
+  // Using default AppScript URL for all users - no prompt needed
+  // The default URL is hardcoded in sendWeeklySchedule()
 }
 
 async function sendWeeklySchedule() {
