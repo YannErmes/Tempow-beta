@@ -2709,8 +2709,12 @@ body.text-mode .btn .btn-text {
         <option value="import">↑ Import JSON</option>
         <option value="export-done">↓ Export Completed Only</option>
         <option value="sync-elapsed">↻ Sync Elapsed Time</option>
+        <option value="backup">☁ Back Up All Tasks</option>
+        <option value="restore">↓ Restore All Tasks</option>
         <option value="clear">✕ Clear All Tasks</option>
       </select>
+      <button class="btn-report" onclick="console.log('Backup clicked'); openSyncModal();" style="background: rgba(93,224,168,0.12); border-color: var(--active); color: var(--active);">☁ Back Up</button>
+      <button class="btn-report" onclick="console.log('Restore clicked'); openLoadFromCloudModal();" style="background: rgba(93,224,168,0.12); border-color: var(--active); color: var(--active);">↓ Restore</button>
       <span id="syncStatusInline" style="font-size:10px;color:var(--muted);"></span>
       <span class="save-indicator" id="flowSaveIndicator">✓ Saved</span>
       <span style="font-size:10px;color:var(--muted);" id="flowLastSaved"></span>
@@ -2990,13 +2994,6 @@ body.text-mode .btn .btn-text {
         <div class="sidebar-title">⏳ Import from Timer</div>
         <button onclick="importAllTimerTasksToCalendar()" class="btn btn-report" style="width: 100%; background: rgba(93,224,168,0.2); border-color: var(--active); color: var(--active);">⏳ Import All from Timer</button>
         <div style="font-size: 10px; color: var(--muted2); margin-top: 8px;">Creates calendar entries for all Timer tasks so they appear in the Calendar page.</div>
-      </div>
-
-      <div class="sidebar-section">
-        <div class="sidebar-title">☁️ Back Up & Restore</div>
-        <button onclick="openSyncModal()" class="btn btn-report" style="width: 100%; background: rgba(93,224,168,0.2); border-color: var(--active); color: var(--active); margin-bottom: 8px;">☁ Back Up All Tasks</button>
-        <button onclick="openLoadFromCloudModal()" class="btn btn-report" style="width: 100%; background: rgba(93,224,168,0.2); border-color: var(--active); color: var(--active);">↓ Restore All Tasks</button>
-        <div style="font-size: 10px; color: var(--muted2); margin-top: 8px;">Back up all timer and calendar tasks to cloud, or restore from a previous backup.</div>
       </div>
 
     </div>
@@ -3642,10 +3639,29 @@ body.text-mode .btn .btn-text {
 
 <!-- Cloud Sync Modal -->
 <div class="modal-bg" id="syncModal">
-  <div class="modal" style="max-width: 400px;">
+  <div class="modal" style="max-width: 450px;">
     <h2>☁ Back up</h2>
     <p style="font-size: 11px; color: var(--muted); margin-bottom: 16px;">Save your tasks to Google Sheets and access them from any device.</p>
     
+    <div style="background: var(--active-dim); border: 1px solid var(--active); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+      <div style="font-size: 10px; font-weight: 600; color: var(--text); margin-bottom: 6px;">✓ Quick Start (Recommended)</div>
+      <div style="font-size: 9px; color: var(--muted2); line-height: 1.5;">
+        1. Leave Sync URL blank to use the built-in endpoint<br>
+        2. Enter your email and username<br>
+        3. Click "☁ Sync now"<br>
+        <strong>That's it!</strong> Your tasks are backed up to our servers.
+      </div>
+    </div>
+    
+    <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-bottom: 12px;">
+      <div style="font-size: 10px; font-weight: 600; color: var(--muted2); margin-bottom: 8px;">Custom Apps Script (Advanced)</div>
+      <div class="field">
+        <label style="font-size: 10px;">Google Apps Script URL (Optional)</label>
+        <input type="url" id="syncUrlInput" placeholder="Leave blank for built-in endpoint" />
+        <div style="font-size: 8px; color: var(--muted2); margin-top: 4px;">Only paste here if you deployed your own Apps Script. Must end with <code style="background:var(--surface2);padding:1px 4px;border-radius:2px;">/exec</code></div>
+      </div>
+    </div>
+
     <div class="modal-loading-container" id="syncLoadingContainer">
       <div class="sync-spinner">
         <div class="sync-spinner-center"></div>
@@ -3689,10 +3705,30 @@ body.text-mode .btn .btn-text {
 
 <!-- Load from Cloud Modal -->
 <div class="modal-bg" id="loadFromCloudModal">
-  <div class="modal" style="max-width: 400px;">
+  <div class="modal" style="max-width: 450px;">
     <h2>☁ Restore</h2>
-    <p style="font-size: 11px; color: var(--muted); margin-bottom: 16px;">Retrieve your tasks using your email and username.</p>
+    <p style="font-size: 11px; color: var(--muted); margin-bottom: 16px;">Retrieve your backed-up tasks from Google Sheets.</p>
     
+    <div style="background: var(--active-dim); border: 1px solid var(--active); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+      <div style="font-size: 10px; font-weight: 600; color: var(--text); margin-bottom: 6px;">✓ Quick Start (Recommended)</div>
+      <div style="font-size: 9px; color: var(--muted2); line-height: 1.5;">
+        1. Leave Sync URL blank to use the built-in endpoint<br>
+        2. Enter the same email and username from your backup<br>
+        3. Click "↓ Load tasks"<br>
+        4. Review preview and confirm<br>
+        <strong>Your tasks will be restored!</strong>
+      </div>
+    </div>
+    
+    <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-bottom: 12px;">
+      <div style="font-size: 10px; font-weight: 600; color: var(--muted2); margin-bottom: 8px;">Custom Apps Script (Advanced)</div>
+      <div class="field">
+        <label style="font-size: 10px;">Google Apps Script URL (Optional)</label>
+        <input type="url" id="loadUrlInput" placeholder="Leave blank for built-in endpoint" />
+        <div style="font-size: 8px; color: var(--muted2); margin-top: 4px;">Only paste here if you deployed your own Apps Script. Must end with <code style="background:var(--surface2);padding:1px 4px;border-radius:2px;">/exec</code></div>
+      </div>
+    </div>
+
     <div class="modal-loading-container" id="loadLoadingContainer">
       <div class="sync-spinner">
         <div class="sync-spinner-center"></div>
@@ -3783,6 +3819,9 @@ body.text-mode .btn .btn-text {
 </div>
 
 <script>
+// Global variables - must be at top of script for availability
+let loadModalStage = 'input'; // 'input' or 'confirm' stage for restore modal
+
 /* ═══════════════════════════════════════════
    PAGE SWITCHING
 ═══════════════════════════════════════════ */
@@ -3834,12 +3873,48 @@ function addToTray(taskId, source) {
     const t = flowTasks.find(x => x.id === taskId);
     if (!t) return;
     if (tray.find(x => x.id === taskId)) { removeFromTray(taskId); return; }
-    tray.push({ id: taskId, name: t.name, allocSecs: t.allocSecs, color: '#5de0a8', source: 'flow' });
+    // Preserve complete task state including breaks, segments, and all metadata
+    tray.push({
+      id: taskId,
+      name: t.name,
+      allocSecs: t.allocSecs,
+      color: '#5de0a8',
+      source: 'flow',
+      // Preserve full task state
+      state: t.state || 'idle',
+      segments: t.segments ? JSON.parse(JSON.stringify(t.segments)) : [],
+      dateAdded: t.dateAdded,
+      isUntimed: t.isUntimed,
+      notes: t.notes || '',
+      splits: t.splits ? JSON.parse(JSON.stringify(t.splits)) : [],
+      pausedAt: t.pausedAt,
+      completedAt: t.completedAt,
+      scheduledDate: t.scheduledDate,
+      scheduledHour: t.scheduledHour,
+      breaks: t.breaks ? JSON.parse(JSON.stringify(t.breaks)) : []
+    });
   } else {
     const t = clockTasks.find(x => x.id === taskId);
     if (!t) return;
     if (tray.find(x => x.id === taskId)) { removeFromTray(taskId); return; }
-    tray.push({ id: taskId, name: t.name, allocSecs: t.duration, color: t.color, source: 'clock' });
+    // Preserve complete task state from clock
+    tray.push({
+      id: taskId,
+      name: t.name,
+      allocSecs: t.duration,
+      color: t.color,
+      source: 'clock',
+      // Preserve full task state if available
+      state: t.state || 'idle',
+      segments: t.segments ? JSON.parse(JSON.stringify(t.segments)) : [],
+      dateAdded: t.dateAdded || Date.now(),
+      isUntimed: t.isUntimed,
+      notes: t.notes || '',
+      splits: t.splits ? JSON.parse(JSON.stringify(t.splits)) : [],
+      pausedAt: t.pausedAt,
+      completedAt: t.completedAt,
+      breaks: t.breaks ? JSON.parse(JSON.stringify(t.breaks)) : []
+    });
   }
   renderTray(); renderFlowList();
 }
@@ -3862,9 +3937,41 @@ function sendTray() {
   const dest = source === 'flow' ? 'clock' : 'flow';
   tray.forEach(item => {
     if (dest === 'clock') {
-      pendingToClock.push({ id: 'c' + Date.now() + Math.random(), name: item.name, allocSecs: item.allocSecs, color: item.color });
+      // Transfer to clock with full task state preserved
+      pendingToClock.push({
+        id: 'c' + Date.now() + Math.random(),
+        name: item.name,
+        allocSecs: item.allocSecs,
+        color: item.color,
+        // Preserve all task state
+        state: item.state || 'idle',
+        segments: item.segments ? JSON.parse(JSON.stringify(item.segments)) : [],
+        dateAdded: item.dateAdded,
+        isUntimed: item.isUntimed,
+        notes: item.notes || '',
+        splits: item.splits ? JSON.parse(JSON.stringify(item.splits)) : [],
+        pausedAt: item.pausedAt,
+        completedAt: item.completedAt,
+        breaks: item.breaks ? JSON.parse(JSON.stringify(item.breaks)) : []
+      });
     } else {
-      pendingToFlow.push({ id: 'f' + Date.now() + Math.random(), name: item.name, allocSecs: item.allocSecs, color: item.color });
+      // Transfer to flow with full task state preserved
+      pendingToFlow.push({
+        id: 'f' + Date.now() + Math.random(),
+        name: item.name,
+        allocSecs: item.allocSecs,
+        color: item.color,
+        // Preserve all task state
+        state: item.state || 'idle',
+        segments: item.segments ? JSON.parse(JSON.stringify(item.segments)) : [],
+        dateAdded: item.dateAdded,
+        isUntimed: item.isUntimed,
+        notes: item.notes || '',
+        splits: item.splits ? JSON.parse(JSON.stringify(item.splits)) : [],
+        pausedAt: item.pausedAt,
+        completedAt: item.completedAt,
+        breaks: item.breaks ? JSON.parse(JSON.stringify(item.breaks)) : []
+      });
     }
   });
   tray = [];
@@ -7548,6 +7655,24 @@ function saveWorkspaceSettings(settings) {
   localStorage.setItem('workspaceSettings', JSON.stringify(settings || {}));
 }
 
+function getCloudSyncUrl() {
+  const settings = getCloudSyncSettings();
+  return settings.cloudSyncUrl && settings.cloudSyncUrl.trim() ? settings.cloudSyncUrl.trim() : CLOUD_SYNC_URL;
+}
+
+function saveCloudSyncUrl(url) {
+  const settings = getCloudSyncSettings();
+  settings.cloudSyncUrl = url ? url.trim() : '';
+  localStorage.setItem('cloudSyncSettings', JSON.stringify(settings));
+}
+
+function validateCloudSyncUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  const value = url.trim();
+  const pattern = /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9-_]+\/exec(\?.*)?$/;
+  return pattern.test(value);
+}
+
 function updateCloudSyncWorkspace(workspaceId) {
   const current = getCloudSyncSettings();
   current.workspaceId = workspaceId || '';
@@ -9144,7 +9269,7 @@ async function sendWeeklySchedule() {
   }
   
   // Use default AppScript URL for all users
-  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbyEFjFgrQyqh_9erHQMb71w13RdBcJ_XEf9YG3WE8gsbKlh0KzuF-zibL5yOm2Kqb5V/exec';
+  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbzwHQSK2AC3uBqzwCAVZcYa_XI-SEu8Y58kfQXy8BK-jGXCQ-IYAFt1YxlFw2hZ6FOV/exec';
   
   // Save email for future use
   localStorage.setItem('user_email', recipientEmail);
@@ -9247,18 +9372,22 @@ function transferToTimer(taskId, scheduledDate = null) {
   
   const targetDate = scheduledDate || task.scheduledDate || (Array.isArray(task.scheduledDates) ? task.scheduledDates[0] : null);
   
-  // Add to timer with scheduled date and time
+  // Add to timer with scheduled date and time, preserving all available state
   const newTask = {
     id: Date.now() + Math.random(),
     name: task.name,
     allocSecs: task.duration * 60,
-    state: 'idle',
-    segments: [],
-    createdAt: Date.now(),
+    state: task.state || 'idle',
+    segments: task.segments ? JSON.parse(JSON.stringify(task.segments)) : [],
+    dateAdded: task.dateAdded || Date.now(),
     isUntimed: false,
     notes: task.notes || '',
     scheduledDate: targetDate,
-    scheduledHour: task.hour
+    scheduledHour: task.hour,
+    splits: task.splits ? JSON.parse(JSON.stringify(task.splits)) : [],
+    pausedAt: task.pausedAt,
+    completedAt: task.completedAt,
+    breaks: task.breaks ? JSON.parse(JSON.stringify(task.breaks)) : []
   };
   
   flowTasks.push(newTask);
@@ -9274,7 +9403,7 @@ function transferAllCalendarTasksToTimer() {
     return;
   }
   
-  const confirmed = confirm(`Transfer all ${calendarTasks.length} calendar task${calendarTasks.length !== 1 ? 's' : ''} to the Timer page?\n\nThey will appear as untimed tasks in the Timer for organization.`);
+  const confirmed = confirm(`Transfer all ${calendarTasks.length} calendar task${calendarTasks.length !== 1 ? 's' : ''} to the Timer page?\n\nAll task state including breaks, current status, and history will be preserved.`);
   if (!confirmed) return;
   
   let transferredCount = 0;
@@ -9282,18 +9411,22 @@ function transferAllCalendarTasksToTimer() {
   calendarTasks.forEach(task => {
     const targetDate = task.scheduledDate || (Array.isArray(task.scheduledDates) ? task.scheduledDates[0] : null);
     
-    // Create timer task from calendar task
+    // Create timer task from calendar task, preserving all state
     const newTask = {
       id: Date.now() + Math.random(),
       name: task.name,
       allocSecs: task.duration * 60,
-      state: 'idle',
-      segments: [],
-      createdAt: Date.now(),
+      state: task.state || 'idle',
+      segments: task.segments ? JSON.parse(JSON.stringify(task.segments)) : [],
+      dateAdded: task.dateAdded || Date.now(),
       isUntimed: false,
       notes: task.notes || '',
       scheduledDate: targetDate,
-      scheduledHour: task.hour
+      scheduledHour: task.hour,
+      splits: task.splits ? JSON.parse(JSON.stringify(task.splits)) : [],
+      pausedAt: task.pausedAt,
+      completedAt: task.completedAt,
+      breaks: task.breaks ? JSON.parse(JSON.stringify(task.breaks)) : []
     };
     
     flowTasks.push(newTask);
@@ -9304,7 +9437,7 @@ function transferAllCalendarTasksToTimer() {
   saveFlowData();
   renderFlowList();
   
-  alert(`✓ ${transferredCount} task${transferredCount !== 1 ? 's' : ''} transferred to Timer!\n\nUse filters to organize them by date and status.`);
+  alert(`✓ ${transferredCount} task${transferredCount !== 1 ? 's' : ''} transferred to Timer!\n\nAll task state, breaks, and history have been preserved.`);
   
   // Switch to timer page
   switchPage('flow');
@@ -9316,7 +9449,7 @@ function importAllTimerTasksToCalendar() {
     return;
   }
 
-  const confirmed = confirm(`Import all ${flowTasks.length} timer task${flowTasks.length !== 1 ? 's' : ''} into the Calendar page?\n\nThis will create matching calendar entries for today so they appear in the Calendar view.`);
+  const confirmed = confirm(`Import all ${flowTasks.length} timer task${flowTasks.length !== 1 ? 's' : ''} into the Calendar page?\n\nAll task state including current breaks, status, and history will be preserved.`);
   if (!confirmed) return;
 
   const today = new Date();
@@ -9339,8 +9472,17 @@ function importAllTimerTasksToCalendar() {
       hour,
       duration,
       notes: task.notes || '',
-      createdAt: Date.now(),
-      completed: false
+      dateAdded: task.dateAdded || Date.now(),
+      createdAt: task.dateAdded || Date.now(),
+      completed: task.state === 'done',
+      // Preserve full task evolution
+      state: task.state || 'idle',
+      segments: task.segments ? JSON.parse(JSON.stringify(task.segments)) : [],
+      splits: task.splits ? JSON.parse(JSON.stringify(task.splits)) : [],
+      pausedAt: task.pausedAt,
+      completedAt: task.completedAt,
+      breaks: task.breaks ? JSON.parse(JSON.stringify(task.breaks)) : [],
+      isUntimed: task.isUntimed
     };
 
     calendarTasks.push(calTask);
@@ -9350,7 +9492,7 @@ function importAllTimerTasksToCalendar() {
   saveCalendarData();
   renderCalendarView();
   renderTodaysTasks();
-  alert(`✓ Imported ${importedCount} task${importedCount !== 1 ? 's' : ''} from Timer to Calendar. They now appear in the Calendar page.`);
+  alert(`✓ Imported ${importedCount} task${importedCount !== 1 ? 's' : ''} from Timer to Calendar.\n\nAll task state, breaks, and history have been preserved.`);
 }
 
 function deleteCalendarTask(taskId) {
@@ -9427,7 +9569,7 @@ setInterval(() => {
 ═══════════════════════════════════════════ */
 
 // Global AppScript URL - all users use the same backend
-const CLOUD_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyEFjFgrQyqh_9erHQMb71w13RdBcJ_XEf9YG3WE8gsbKlh0KzuF-zibL5yOm2Kqb5V/exec';
+const CLOUD_SYNC_URL = 'https://script.google.com/macros/s/AKfycbzwHQSK2AC3uBqzwCAVZcYa_XI-SEu8Y58kfQXy8BK-jGXCQ-IYAFt1YxlFw2hZ6FOV/exec';
 
 // Simple hash function for generating sync ID
 function simpleHash(str) {
@@ -9468,6 +9610,7 @@ function openSyncModal() {
     const settings = JSON.parse(savedSettings);
     document.getElementById('syncEmail').value = settings.email || '';
     document.getElementById('syncUsername').value = settings.username || '';
+    document.getElementById('syncUrlInput').value = settings.cloudSyncUrl || '';
     
     // Show existing sync info
     const syncId = generateSyncId(settings.email, settings.username);
@@ -9475,6 +9618,8 @@ function openSyncModal() {
     document.getElementById('syncExistingInfo').style.display = 'block';
     document.getElementById('syncExistingText').textContent = `ID: ${syncId} • Last synced: ${lastSync}`;
     document.getElementById('syncWorkspaceInfo').textContent = settings.workspaceId ? `Workspace ID: ${settings.workspaceId}` : 'No workspace integrated';
+  } else {
+    document.getElementById('syncUrlInput').value = '';
   }
   modal.classList.add('open');
 }
@@ -9491,7 +9636,9 @@ async function testAppScriptConnection() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     
-    const response = await fetch(CLOUD_SYNC_URL + '?action=test', {
+    const cloudUrl = getCloudSyncUrl();
+    const testUrl = cloudUrl + (cloudUrl.includes('?') ? '&' : '?') + 'action=test';
+    const response = await fetch(testUrl, {
       signal: controller.signal
     });
     
@@ -9517,6 +9664,16 @@ async function confirmSync() {
   const username = document.getElementById('syncUsername').value.trim();
   
   // Validate inputs
+  const syncUrlInput = document.getElementById('syncUrlInput');
+  const customUrl = syncUrlInput ? syncUrlInput.value.trim() : '';
+  if (customUrl) {
+    if (!validateCloudSyncUrl(customUrl)) {
+      showSyncStatus('Enter a valid Apps Script URL ending in /exec, or leave blank to use built-in.', 'error');
+      return;
+    }
+    saveCloudSyncUrl(customUrl);
+  }
+  
   if (!email || !email.includes('@')) {
     showSyncStatus('Please enter a valid email address', 'error');
     return;
@@ -9561,8 +9718,11 @@ async function confirmSync() {
     };
     const tasksToSync = JSON.stringify(allTasksToSync, null, 2);
     
-    console.log('Starting sync with URL:', CLOUD_SYNC_URL);
+    const cloudUrl = getCloudSyncUrl();
+    const syncUrl = cloudUrl + (cloudUrl.includes('?') ? '&' : '?') + 'action=save';
+    console.log('Starting sync with URL:', syncUrl);
     console.log('Sync payload size:', JSON.stringify({
+      action: 'save',
       email: email,
       username: username,
       jsonData: tasksToSync,
@@ -9574,12 +9734,16 @@ async function confirmSync() {
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
     // Send to Google Sheets with timeout
-    const response = await fetch(CLOUD_SYNC_URL, {
+    const response = await fetch(syncUrl, {
       method: 'POST',
+      mode: 'cors',
+      cache: 'no-cache',
+      credentials: 'omit',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        action: 'save',
         email: email,
         username: username,
         jsonData: tasksToSync,
@@ -9661,9 +9825,6 @@ function showSyncStatus(message, type) {
    LOAD FROM CLOUD FUNCTIONS
 ═══════════════════════════════════════════ */
 
-// Track which stage we're in for the load modal
-let loadModalStage = 'input'; // 'input' or 'confirm'
-
 function openLoadFromCloudModal() {
   const modal = document.getElementById('loadFromCloudModal');
   
@@ -9687,6 +9848,9 @@ function openLoadFromCloudModal() {
     const settings = JSON.parse(savedSettings);
     document.getElementById('loadEmail').value = settings.email || '';
     document.getElementById('loadUsername').value = settings.username || '';
+    document.getElementById('loadUrlInput').value = settings.cloudSyncUrl || '';
+  } else {
+    document.getElementById('loadUrlInput').value = '';
   }
   
   modal.classList.add('open');
@@ -9708,6 +9872,16 @@ async function handleLoadButtonClick() {
 }
 
 async function confirmLoadFromCloud() {
+  const loadUrlInput = document.getElementById('loadUrlInput');
+  const customUrl = loadUrlInput ? loadUrlInput.value.trim() : '';
+  if (customUrl) {
+    if (!validateCloudSyncUrl(customUrl)) {
+      showLoadStatus('Enter a valid Apps Script URL ending in /exec, or leave blank to use built-in.', 'error');
+      return;
+    }
+    saveCloudSyncUrl(customUrl);
+  }
+  
   const email = document.getElementById('loadEmail').value.trim();
   const username = document.getElementById('loadUsername').value.trim();
   
@@ -9734,12 +9908,18 @@ async function confirmLoadFromCloud() {
   
   try {
     // Build URL with email + username (backend will regenerate same ID to match)
-    let url = CLOUD_SYNC_URL + '?action=fetch';
+    const cloudUrl = getCloudSyncUrl();
+    let url = cloudUrl + (cloudUrl.includes('?') ? '&' : '?') + 'action=fetch';
     url += '&email=' + encodeURIComponent(email);
     url += '&username=' + encodeURIComponent(username);
     
     console.log('Fetching from:', url);
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-cache',
+      credentials: 'omit'
+    });
     const data = await response.json();
     
     console.log('Response:', data);
@@ -9846,7 +10026,8 @@ function doLoadTasks() {
       // Update UI for both timer and calendar
       renderFlowList();
       updateStats();
-      renderCalendarUI();
+      renderCalendarView();
+      renderTodaysTasks();
       
       setTimeout(() => {
         closeLoadFromCloudModal();
@@ -9870,7 +10051,8 @@ function doLoadTasks() {
       // Update UI for both timer and calendar
       renderFlowList();
       updateStats();
-      renderCalendarUI();
+      renderCalendarView();
+      renderTodaysTasks();
       
       setTimeout(() => {
         closeLoadFromCloudModal();
@@ -9897,6 +10079,9 @@ function showLoadStatus(message, type) {
   } else if (type === 'error') {
     statusDiv.style.background = 'rgba(255, 94, 108, 0.15)';
     statusDiv.style.color = 'var(--danger)';
+  } else {
+    statusDiv.style.background = 'rgba(255, 255, 255, 0.05)';
+    statusDiv.style.color = 'var(--muted)';
   }
 }
 
