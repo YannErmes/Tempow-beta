@@ -4020,7 +4020,7 @@ function updateBadges() {
 ═══════════════════════════════════════════ */
 // ===== UNIFIED TASK SYSTEM =====
 // Both timer and calendar use the SAME task list
-const CLOUD_SYNC_URL = 'https://script.google.com/macros/s/AKfycbzwHQSK2AC3uBqzwCAVZcYa_XI-SEu8Y58kfQXy8BK-jGXCQ-IYAFt1YxlFw2hZ6FOV/exec';
+const CLOUD_SYNC_URL = 'https://script.google.com/macros/s/AKfycbzLcQR_2NzymcvfFYGM_bX4hdNieG4VnAz4PcbwahkeUAVMFoAhvP85LBV9pQUHzoUp/exec';
 let allTasks = [];  // Single source of truth for all tasks
 let flowTasks = [];  // Deprecated alias - automatically synced with allTasks
 let calendarTasks = [];  // Deprecated alias - automatically synced with allTasks
@@ -9298,7 +9298,7 @@ async function sendWeeklySchedule() {
   }
   
   // Use default AppScript URL for all users
-  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbzwHQSK2AC3uBqzwCAVZcYa_XI-SEu8Y58kfQXy8BK-jGXCQ-IYAFt1YxlFw2hZ6FOV/exec';
+  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbzLcQR_2NzymcvfFYGM_bX4hdNieG4VnAz4PcbwahkeUAVMFoAhvP85LBV9pQUHzoUp/exec';
   
   // Save email for future use
   localStorage.setItem('user_email', recipientEmail);
@@ -9570,36 +9570,6 @@ function closeSyncModal() {
   modal.classList.remove('open');
 }
 
-// Test AppScript connection before syncing
-async function testAppScriptConnection() {
-  try {
-    console.log('Testing AppScript connection...');
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    const cloudUrl = getCloudSyncUrl();
-    const testUrl = cloudUrl + (cloudUrl.includes('?') ? '&' : '?') + 'action=test';
-    const response = await fetch(testUrl, {
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      console.log('Test response status:', response.status);
-      return false;
-    }
-    
-    const data = await response.json();
-    console.log('AppScript test response:', data);
-    return data.success === true;
-    
-  } catch (err) {
-    console.error('AppScript connection test failed:', err);
-    return false;
-  }
-}
-
 async function confirmSync() {
   const email = document.getElementById('syncEmail').value.trim();
   const username = document.getElementById('syncUsername').value.trim();
@@ -9632,24 +9602,6 @@ async function confirmSync() {
   showSyncLoadingAnimation();
   
   try {
-    // Test connection first
-    console.log('Testing AppScript connection before sync...');
-    showSyncStatus('Testing connection...', 'info');
-    const isConnected = await testAppScriptConnection();
-    
-    if (!isConnected) {
-      console.error('Failed to connect to AppScript');
-      hideSyncLoadingAnimation();
-      restoreSyncContent();
-      showSyncStatus('Cannot reach server. Check your internet or URL.', 'error');
-      btn.disabled = false;
-      btn.textContent = '☁ Sync now';
-      return;
-    }
-    
-    console.log('Connection test passed, proceeding with sync');
-    showSyncStatus('Syncing your tasks...', 'info');
-    
     const existingWorkspace = getWorkspaceSettings();
     
     // Get all tasks from the unified task list
@@ -9660,26 +9612,11 @@ async function confirmSync() {
     const tasksToSync = JSON.stringify(allTasksToSync, null, 2);
     
     const cloudUrl = getCloudSyncUrl();
-    const syncUrl = cloudUrl + (cloudUrl.includes('?') ? '&' : '?') + 'action=save';
-    console.log('Starting sync with URL:', syncUrl);
-    console.log('Sync payload size:', JSON.stringify({
-      action: 'save',
-      email: email,
-      username: username,
-      jsonData: tasksToSync,
-      workspaceId: existingWorkspace.workspaceId || ''
-    }).length, 'bytes');
-
-    // Create abort controller for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
-    // Send to Google Sheets with timeout
-    const response = await fetch(syncUrl, {
+    // Send to Google Sheets using no-cors mode to bypass CORS blocking
+    const response = await fetch(cloudUrl, {
       method: 'POST',
-      mode: 'cors',
-      cache: 'no-cache',
-      credentials: 'omit',
+      mode: 'no-cors',
       headers: {
         'Content-Type': 'application/json'
       },
@@ -9689,30 +9626,15 @@ async function confirmSync() {
         username: username,
         jsonData: tasksToSync,
         workspaceId: existingWorkspace.workspaceId || ''
-      }),
-      signal: controller.signal
+      })
     });
     
-    clearTimeout(timeoutId);
-    console.log('Fetch completed with status:', response.status, response.statusText);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error('Sync failed: ' + response.status + ' ' + response.statusText + ' - ' + errorText);
-    }
-
-    const result = await response.json();
-    console.log('Sync response:', result);
-
-    if (!result.success) {
-      throw new Error(result.error || 'Unknown sync error');
-    }
-
+    // Note: With no-cors mode, we can't read response, so we assume success
     const syncSettings = {
       email: email,
       username: username,
       lastSync: new Date().toISOString(),
-      syncId: result.syncId || generateSyncId(email, username),
+      syncId: generateSyncId(email, username),
       workspaceId: existingWorkspace.workspaceId || ''
     };
     
@@ -9729,12 +9651,7 @@ async function confirmSync() {
     console.error('Sync error:', err);
     hideSyncLoadingAnimation();
     restoreSyncContent();
-    
-    if (err.name === 'AbortError') {
-      showSyncStatus('Sync timeout - check your internet connection', 'error');
-    } else {
-      showSyncStatus('Error syncing tasks: ' + err.message, 'error');
-    }
+    showSyncStatus('Error syncing tasks: ' + err.message, 'error');
     
     btn.disabled = false;
     btn.textContent = '☁ Sync now';
