@@ -3169,8 +3169,20 @@ body.text-mode .btn .btn-text {
         <input type="number" id="calTaskHour" min="0" max="23" placeholder="9" value="9">
       </div>
       <div class="field">
-        <label>Duration (minutes)</label>
-        <input type="number" id="calTaskDuration" min="15" max="240" placeholder="60" value="60">
+        <label>Duration</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center;">
+          <div>
+            <div style="font-size: 10px; color: var(--muted); margin-bottom: 4px;">Hours</div>
+            <input id="calTaskDurationHours" type="number" min="0" max="4" value="0" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px;" />
+          </div>
+          <div>
+            <div style="font-size: 10px; color: var(--muted); margin-bottom: 4px;">Minutes</div>
+            <input id="calTaskDurationMinutes" type="number" min="0" max="59" value="60" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px;" />
+          </div>
+        </div>
+        <div style="margin-top: 8px; padding: 8px; background: var(--active-dim); border-radius: 4px; border: 1px solid var(--active); font-size: 12px; color: var(--active); text-align: center;">
+          <strong id="calDurationDisplay">60 minutes</strong>
+        </div>
       </div>
       <div class="field">
         <label>Notes</label>
@@ -3561,15 +3573,19 @@ body.text-mode .btn .btn-text {
     </div>
     <div class="field" id="timed-options">
       <label>Allocated time (Max 4 hours)</label>
-      <select id="inp-dur">
-        <option value="5">5 minutes</option><option value="10">10 minutes</option>
-        <option value="15">15 minutes</option><option value="20">20 minutes</option>
-        <option value="25" selected>25 minutes</option><option value="30">30 minutes</option>
-        <option value="45">45 minutes</option><option value="60">1 hour</option>
-        <option value="90">1.5 hours</option><option value="120">2 hours</option>
-        <option value="150">2.5 hours</option><option value="180">3 hours</option>
-        <option value="210">3.5 hours</option><option value="240">4 hours</option>
-      </select>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center;">
+        <div>
+          <div style="font-size: 10px; color: var(--muted); margin-bottom: 4px;">Hours</div>
+          <input id="inp-dur-hours" type="number" min="0" max="4" value="0" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px;" />
+        </div>
+        <div>
+          <div style="font-size: 10px; color: var(--muted); margin-bottom: 4px;">Minutes</div>
+          <input id="inp-dur-minutes" type="number" min="0" max="59" value="25" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px;" />
+        </div>
+      </div>
+      <div style="margin-top: 8px; padding: 8px; background: var(--active-dim); border-radius: 4px; border: 1px solid var(--active); font-size: 12px; color: var(--active); text-align: center;">
+        <strong id="durationDisplay">25 minutes</strong>
+      </div>
     </div>
     <div style="border-top: 1px solid var(--border); margin: 12px 0; padding: 12px 0 0 0;">
       <label style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Schedule to calendar (optional)</label>
@@ -4774,13 +4790,36 @@ function openModal() {
   document.getElementById('inp-name').focus();
   document.getElementById('inp-schedule-date').valueAsDate = new Date();
   switchTaskType('timed');
+  updateDurationDisplay();
 }
 function closeModal() { 
   document.getElementById('addTaskModal').classList.remove('open'); 
   document.getElementById('inp-name').value=''; 
   document.getElementById('inp-schedule-date').value='';
   document.getElementById('inp-schedule-hour').value='9';
+  document.getElementById('inp-dur-hours').value='0';
+  document.getElementById('inp-dur-minutes').value='25';
 }
+
+function updateDurationDisplay() {
+  const hours = parseInt(document.getElementById('inp-dur-hours').value) || 0;
+  const minutes = parseInt(document.getElementById('inp-dur-minutes').value) || 0;
+  const totalMinutes = hours * 60 + minutes;
+  
+  let displayText = '';
+  if (hours > 0 && minutes > 0) {
+    displayText = `${hours}h ${minutes}m (${totalMinutes} minutes)`;
+  } else if (hours > 0) {
+    displayText = `${hours}h (${totalMinutes} minutes)`;
+  } else if (minutes > 0) {
+    displayText = `${minutes} minutes`;
+  } else {
+    displayText = '0 minutes';
+  }
+  
+  document.getElementById('durationDisplay').textContent = displayText;
+}
+
 function switchTaskType(type) {
   document.querySelectorAll('.task-type-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.type === type);
@@ -4790,6 +4829,14 @@ function switchTaskType(type) {
 }
 document.getElementById('addTaskModal').addEventListener('click', e=>{ if(e.target===document.getElementById('addTaskModal')) closeModal(); });
 document.getElementById('inp-name').addEventListener('keydown', e=>{ if(e.key==='Enter') addFlowTask(); });
+
+// Duration inputs - update display when changed
+document.getElementById('inp-dur-hours')?.addEventListener('input', updateDurationDisplay);
+document.getElementById('inp-dur-minutes')?.addEventListener('input', updateDurationDisplay);
+
+// Calendar duration inputs - update display when changed
+document.getElementById('calTaskDurationHours')?.addEventListener('input', updateCalendarDurationDisplay);
+document.getElementById('calTaskDurationMinutes')?.addEventListener('input', updateCalendarDurationDisplay);
 
 // Work hour listeners
 document.getElementById('workStartTime')?.addEventListener('change', e => {
@@ -4811,7 +4858,9 @@ document.addEventListener('click', e=>{
 function addFlowTask() {
   const name=document.getElementById('inp-name').value.trim();
   const isUntimed = document.querySelector('.task-type-btn.active').dataset.type === 'untimed';
-  const dur = isUntimed ? 0 : parseInt(document.getElementById('inp-dur').value);
+  const hours = isUntimed ? 0 : parseInt(document.getElementById('inp-dur-hours').value) || 0;
+  const minutes = isUntimed ? 0 : parseInt(document.getElementById('inp-dur-minutes').value) || 0;
+  const dur = hours * 60 + minutes;  // Convert to total minutes
   
   if (!name) { document.getElementById('inp-name').focus(); return; }
   
@@ -4940,9 +4989,23 @@ function shouldShowTask(task) {
   return isTaskInDateRange(task);
 }
 
+function getTaskScheduledDates(task) {
+  const dates = [];
+  if (task.scheduledDate) dates.push(task.scheduledDate);
+  if (Array.isArray(task.scheduledDates)) {
+    task.scheduledDates.forEach(date => {
+      if (date && !dates.includes(date)) dates.push(date);
+    });
+  }
+  return dates;
+}
+
 function getTaskScheduleTimestamp(task) {
-  if (task.scheduledDate) {
-    const scheduled = new Date(task.scheduledDate);
+  const scheduledDates = getTaskScheduledDates(task);
+  if (scheduledDates.length > 0) {
+    // Use the earliest scheduled date for sorting purposes
+    const sortedDates = scheduledDates.slice().sort();
+    const scheduled = new Date(sortedDates[0]);
     if (!isNaN(scheduled.getTime())) {
       if (typeof task.scheduledHour === 'number' && !Number.isNaN(task.scheduledHour)) {
         scheduled.setHours(task.scheduledHour, 0, 0, 0);
@@ -4958,7 +5021,7 @@ function getTaskScheduleTimestamp(task) {
 function isTaskInDateRange(task) {
   if (activeDateRange === 'all') return true;
   
-  const taskDate = new Date(getTaskScheduleTimestamp(task));
+  const taskDates = getTaskScheduledDates(task);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -4970,44 +5033,44 @@ function isTaskInDateRange(task) {
   
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   
-  switch (activeDateRange) {
-    case 'today':
-      return taskDate >= today && taskDate < tomorrow;
-    
-    case 'yesterday':
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      return taskDate >= yesterday && taskDate < today;
-    
-    case 'tomorrow':
-      const dayAfterTomorrow = new Date(tomorrow);
-      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
-      return taskDate >= tomorrow && taskDate < dayAfterTomorrow;
-    
-    case 'week':
-      return taskDate >= weekStart && taskDate < tomorrow;
-    
-    case 'month':
-      const nextMonth = new Date(monthStart);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-      return taskDate >= monthStart && taskDate < nextMonth;
-    
-    case 'year':
-      const yearStart = new Date(today.getFullYear(), 0, 1);
-      const nextYear = new Date(yearStart);
-      nextYear.setFullYear(nextYear.getFullYear() + 1);
-      return taskDate >= yearStart && taskDate < nextYear;
-    
-    case 'custom':
-      if (!customDateFilter) return true;
-      const filterDate = new Date(customDateFilter);
-      const filterDateNext = new Date(filterDate);
-      filterDateNext.setDate(filterDateNext.getDate() + 1);
-      return taskDate >= filterDate && taskDate < filterDateNext;
-    
-    default:
-      return true;
-  }
+  const matchesDateRange = date => {
+    const taskDate = new Date(date);
+    taskDate.setHours(0, 0, 0, 0);
+    switch (activeDateRange) {
+      case 'today':
+        return taskDate >= today && taskDate < tomorrow;
+      case 'yesterday':
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return taskDate >= yesterday && taskDate < today;
+      case 'tomorrow':
+        const dayAfterTomorrow = new Date(tomorrow);
+        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+        return taskDate >= tomorrow && taskDate < dayAfterTomorrow;
+      case 'week':
+        return taskDate >= weekStart && taskDate < tomorrow;
+      case 'month':
+        const nextMonth = new Date(monthStart);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        return taskDate >= monthStart && taskDate < nextMonth;
+      case 'year':
+        const yearStart = new Date(today.getFullYear(), 0, 1);
+        const nextYear = new Date(yearStart);
+        nextYear.setFullYear(nextYear.getFullYear() + 1);
+        return taskDate >= yearStart && taskDate < nextYear;
+      case 'custom':
+        if (!customDateFilter) return true;
+        const filterDate = new Date(customDateFilter);
+        filterDate.setHours(0, 0, 0, 0);
+        const filterDateNext = new Date(filterDate);
+        filterDateNext.setDate(filterDateNext.getDate() + 1);
+        return taskDate >= filterDate && taskDate < filterDateNext;
+      default:
+        return true;
+    }
+  };
+  
+  return taskDates.some(date => matchesDateRange(date));
 }
 
 function setDateRange(range) {
@@ -5543,12 +5606,15 @@ function restoreFromTrash(id) {
   
   const restored = { ...t };
   delete restored.deletedAt;
-  flowTasks.push(restored);
+  allTasks.push(restored);
+  flowTasks = allTasks;  // Sync
+  calendarTasks = allTasks;  // Sync
   
   trashedTasks = trashedTasks.filter(x => x.id !== id);
   
   saveFlowData();
   renderFlowList();
+  renderCalendarView();  // Update calendar too
   renderTrash();
 }
 
@@ -6117,8 +6183,12 @@ function renderFlowInbox() {
 function acceptToFlow(id) {
   const item=pendingToFlow.find(x=>x.id===id);
   if(!item) return;
-  flowTasks.push({ id:Date.now() + Math.random(), name:item.name, allocSecs:item.allocSecs, state:'idle', segments:[], isUntimed: false });
+  const newTask = { id:Date.now() + Math.random(), name:item.name, allocSecs:item.allocSecs, state:'idle', segments:[], isUntimed: false };
+  allTasks.push(newTask);
+  flowTasks = allTasks;  // Sync
+  calendarTasks = allTasks;  // Sync
   pendingToFlow=pendingToFlow.filter(x=>x.id!==id);
+  saveFlowData();
   renderFlowList(); renderFlowInbox();
 }
 function dismissFromFlow(id) {
@@ -8990,10 +9060,14 @@ function unmergeTask(taskId) {
   };
   
   // Add the restored task to the list
-  flowTasks.push(newTask2);
+  allTasks.push(newTask2);
+  flowTasks = allTasks;  // Sync
+  calendarTasks = allTasks;  // Sync
   
   // Re-render
   renderFlowList();
+  renderCalendarView();  // Update calendar too
+  saveFlowData();
   
   console.log(`✓ Unmerged: "${task1Info.name}" and "${task2Info.name}"`);
 }
@@ -9415,11 +9489,13 @@ function openCalendarTaskModal() {
   const today = new Date();
   document.getElementById('calTaskDate').valueAsDate = today;
   document.getElementById('calTaskHour').value = '9';
-  document.getElementById('calTaskDuration').value = '60';
+  document.getElementById('calTaskDurationHours').value = '0';
+  document.getElementById('calTaskDurationMinutes').value = '60';
   document.getElementById('calTaskName').value = '';
   document.getElementById('calTaskNotes').value = '';
   calTaskSelectedDates = [];
   renderSelectedCalendarDates();
+  updateCalendarDurationDisplay();
   document.getElementById('calendarTaskModal').classList.add('open');
   document.getElementById('calTaskName').focus();
 }
@@ -9428,11 +9504,32 @@ function closeCalendarTaskModal() {
   document.getElementById('calendarTaskModal').classList.remove('open');
 }
 
+function updateCalendarDurationDisplay() {
+  const hours = parseInt(document.getElementById('calTaskDurationHours').value) || 0;
+  const minutes = parseInt(document.getElementById('calTaskDurationMinutes').value) || 0;
+  const totalMinutes = hours * 60 + minutes;
+  
+  let displayText = '';
+  if (hours > 0 && minutes > 0) {
+    displayText = `${hours}h ${minutes}m (${totalMinutes} minutes)`;
+  } else if (hours > 0) {
+    displayText = `${hours}h (${totalMinutes} minutes)`;
+  } else if (minutes > 0) {
+    displayText = `${minutes} minutes`;
+  } else {
+    displayText = '0 minutes';
+  }
+  
+  document.getElementById('calDurationDisplay').textContent = displayText;
+}
+
 function saveCalendarTask() {
   const name = document.getElementById('calTaskName').value.trim();
   const date = document.getElementById('calTaskDate').value;
   const hour = parseInt(document.getElementById('calTaskHour').value) || 0;
-  const duration = parseInt(document.getElementById('calTaskDuration').value) || 60;
+  const durationHours = parseInt(document.getElementById('calTaskDurationHours').value) || 0;
+  const durationMinutes = parseInt(document.getElementById('calTaskDurationMinutes').value) || 0;
+  const duration = durationHours * 60 + durationMinutes;  // Convert to total minutes
   const notes = document.getElementById('calTaskNotes').value.trim();
   
   const selectedDates = calTaskSelectedDates.length > 0 ? [...new Set(calTaskSelectedDates)] : (date ? [date] : []);
@@ -9625,9 +9722,12 @@ function transferToTimer(taskId, scheduledDate = null) {
     breaks: task.breaks ? JSON.parse(JSON.stringify(task.breaks)) : []
   };
   
-  flowTasks.push(newTask);
+  allTasks.push(newTask);
+  flowTasks = allTasks;  // Sync
+  calendarTasks = allTasks;  // Sync
   saveFlowData();
   renderFlowList();
+  renderCalendarView();  // Update calendar too
   alert(`"${task.name}" moved to Timer page!`);
   switchPage('flow');
 }
@@ -9810,12 +9910,8 @@ async function confirmSync() {
   try {
     const existingWorkspace = getWorkspaceSettings();
     
-    // Get all tasks from the unified task list
-    const allTasksToSync = {
-      flowTasks: allTasks || [],
-      calendarTasks: allTasks || []
-    };
-    const tasksToSync = JSON.stringify(allTasksToSync, null, 2);
+    // Get all tasks from the unified task list (backup as single array, not duplicated)
+    const tasksToSync = JSON.stringify(allTasks || [], null, 2);
     
     const cloudUrl = getCloudSyncUrl();
     
@@ -10056,15 +10152,20 @@ function doLoadTasks() {
   
   console.log('Loading tasks from cloud:', tasksData);
   
-  // ===== Unified system: merge all tasks into allTasks =====
+  // ===== COMPLETE REPLACE: Clear ALL task arrays and load fresh from backup =====
+  // This ensures the backup becomes the single source of truth across devices
+  discardedTasks = [];
+  trashedTasks = [];
+  pendingToFlow = [];
+  
+  // Load backed-up tasks into allTasks (replace existing completely)
   if (Array.isArray(tasksData)) {
-    // Legacy format: just array of tasks
+    // Direct array format - this is the new format we're using
     allTasks = tasksData;
   } else if (tasksData && typeof tasksData === 'object') {
-    // New format: {flowTasks: [], calendarTasks: []} - merge them
+    // Old backup format: {flowTasks: [], calendarTasks: []} - take only flowTasks to avoid duplication
     const flowArr = Array.isArray(tasksData.flowTasks) ? tasksData.flowTasks : [];
-    const calArr = Array.isArray(tasksData.calendarTasks) ? tasksData.calendarTasks : [];
-    allTasks = [...flowArr, ...calArr];
+    allTasks = flowArr;
   } else {
     allTasks = [];
   }
@@ -10095,6 +10196,7 @@ function doLoadTasks() {
       updateFlowStats();
       renderCalendarView();
       renderTodaysTasks();
+      updateHoursTracker();
       
       setTimeout(() => {
         closeLoadFromCloudModal();
@@ -10119,6 +10221,7 @@ function doLoadTasks() {
       updateFlowStats();
       renderCalendarView();
       renderTodaysTasks();
+      updateHoursTracker();
       
       setTimeout(() => {
         closeLoadFromCloudModal();
