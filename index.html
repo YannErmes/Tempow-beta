@@ -1819,6 +1819,107 @@ body.text-mode .btn .btn-text {
 }
 .btn.done-early:hover { background: var(--done-dim); }
 
+/* ── Task Controls Dropdown ── */
+.task-controls-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dropdown-toggle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--muted2);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.dropdown-toggle:hover {
+  background: var(--surface2);
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.dropdown-toggle.active {
+  background: var(--active-dim);
+  border-color: var(--active);
+  color: var(--active);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  min-width: 140px;
+  max-height: 400px;
+  overflow-y: auto;
+  display: none;
+}
+
+.dropdown-menu.open {
+  display: block;
+}
+
+.dropdown-item {
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted2);
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background: var(--active-dim);
+  color: var(--active);
+}
+
+.dropdown-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dropdown-item:disabled:hover {
+  background: transparent;
+  color: var(--muted2);
+}
+
+.dropdown-item.danger {
+  color: var(--danger);
+}
+
+.dropdown-item.danger:hover {
+  background: rgba(255, 94, 108, 0.15);
+  color: var(--danger);
+}
+
 /* ── JSON / data bar ── */
 .data-bar {
   display: flex;
@@ -2713,15 +2814,21 @@ body.text-mode .btn .btn-text {
 
 <!-- ══ WELCOME MODAL (First-time users) ══ -->
 <div class="modal-bg" id="welcomeModal" style="z-index: 10000;">
-  <div class="modal" style="max-width: 380px;">
+  <div class="modal" style="max-width: 420px;">
     <h2>Welcome to Tempow!</h2>
-    <p style="color: var(--muted2); font-size: 13px; margin-bottom: 20px; line-height: 1.6;">Your personal task timer & scheduling assistant. Let's get started!</p>
+    <p style="color: var(--muted2); font-size: 13px; margin-bottom: 20px; line-height: 1.6;">
+      You're part of the first group of users getting Tempow free forever.
+      Soon Tempow will move to a $5/year plan, but if you start now, you'll keep this account free forever.
+    </p>
+    <p style="color: var(--muted2); font-size: 13px; margin-bottom: 20px; line-height: 1.6;">
+      Enter your name to claim this early access and begin using the timer today.
+    </p>
     <div class="field">
       <label>What's your name?</label>
       <input type="text" id="userName" placeholder="Your name" style="font-size: 14px;" />
     </div>
     <div class="modal-actions">
-      <button class="btn-confirm" onclick="saveUserName()" style="flex: 1;">Get started</button>
+      <button class="btn-confirm" onclick="saveUserName()" style="flex: 1;">Claim early access</button>
     </div>
   </div>
 </div>
@@ -2822,11 +2929,8 @@ body.text-mode .btn .btn-text {
         <div class="stat"><div class="stat-label">Time worked</div><div class="stat-value green" id="s-worked">0:00</div></div>
         <div class="stat"><div class="stat-label">Break time</div><div class="stat-value amber" id="s-break">0:00</div></div>
         <div class="stat"><div class="stat-label">Completed</div><div class="stat-value" id="s-done">0</div></div>
-        <div class="stat"><div class="stat-label">Total gaps</div><div class="stat-value" id="s-gaps" style="color: var(--muted2);">0:00</div></div>
       </div>
       <div style="display: flex; align-items: center; gap: 12px; margin-left: auto;">
-        <button class="data-btn" id="dayStartBtn" onclick="toggleDayStart()" style="padding: 8px 14px; font-size: 11px; font-weight: 600;">🌅 START MY DAY</button>
-        <span id="dayStartedIndicator" style="font-size: 10px; color: var(--active); font-weight: 600; display: none;">Day started</span>
         <button class="section-toggle" onclick="toggleSection(this, 'hoursTrackerPanel')" title="Toggle hours tracker">▼</button>
       </div>
     </div>
@@ -2848,12 +2952,6 @@ body.text-mode .btn .btn-text {
       <div class="hours-tracker-label">⚠ Status</div>
       <div class="hours-tracker-value" id="timeStatus" style="font-size: 14px;">—</div>
       <div class="hours-tracker-sub" id="timeStatusDetail"></div>
-    </div>
-    <div style="margin-left: auto; font-size: 11px; color: var(--muted); padding: 10px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border);">
-      <div style="font-weight: 600; color: var(--muted2);">📅 Usual start time</div>
-      <input type="time" id="usualStartTimeInput" style="width: 80px; padding: 4px; margin-top: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 11px;" />
-      <button onclick="saveUsualStartTime()" style="width: 80px; padding: 4px; margin-left: 4px; margin-top: 6px; background: var(--active); color: var(--bg); border: none; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer;">Save</button>
-      <div style="font-size: 9px; color: var(--muted2); margin-top: 4px;">Used if START MY DAY is forgotten</div>
     </div>
   </div>
 
@@ -3625,6 +3723,21 @@ body.text-mode .btn .btn-text {
   </div>
 </div>
 
+<!-- Edit Task Name Modal -->
+<div class="modal-bg" id="editNameModal">
+  <div class="modal" style="max-width: 480px;">
+    <h2>Edit Task Name</h2>
+    <div class="field">
+      <label>Task name</label>
+      <input id="editNameInput" type="text" placeholder="Enter new task name..." style="width: 100%; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-family: var(--font-mono);">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditNameModal()">Cancel</button>
+      <button class="btn-confirm" onclick="saveTaskName()">Save name</button>
+    </div>
+  </div>
+</div>
+
 <!-- Break reason + duration modal -->
 <div class="break-modal-bg" id="breakModal">
   <div class="break-modal">
@@ -4108,7 +4221,9 @@ function addToTray(taskId, source) {
       breaks: t.breaks ? JSON.parse(JSON.stringify(t.breaks)) : []
     });
   }
-  renderTray(); renderFlowList();
+  renderTray();
+  renderFlowList();
+  closeDropdownAfterAction();
 }
 
 function removeFromTray(id) {
@@ -4262,11 +4377,18 @@ function fmtDurF(s) {
 }
 
 // Segment helpers
-function totalWorkedSecs(t) { return t.segments.filter(s=>s.type==='work').reduce((a,s)=>a+s.secs,0); }
-function totalBreakSecs(t)  { return t.segments.filter(s=>s.type==='break').reduce((a,s)=>a+s.secs,0); }
-function liveSegment(t) {
-  if (!t.segments.length) return null;
-  const last=t.segments[t.segments.length-1];
+function totalWorkedSecs(t, dateStr = null) {
+  const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
+  return segments.filter(s=>s.type==='work').reduce((a,s)=>a+s.secs,0);
+}
+function totalBreakSecs(t, dateStr = null)  {
+  const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
+  return segments.filter(s=>s.type==='break').reduce((a,s)=>a+s.secs,0);
+}
+function liveSegment(t, dateStr = null) {
+  const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
+  if (!segments.length) return null;
+  const last = segments[segments.length-1];
   return last.endTs ? null : last;
 }
 
@@ -4515,8 +4637,8 @@ function getHoursLeftInDay() {
 }
 
 function getRemainingTasksHours() {
-  // Only count active (non-discarded, non-done) tasks
-  const activeTasks = flowTasks.filter(t => t.state !== 'done');
+  // Only count active (non-discarded, non-done) tasks that match current filter
+  const activeTasks = flowTasks.filter(t => t.state !== 'done' && shouldShowTask(t));
   let totalSecs = 0;
   
   activeTasks.forEach(t => {
@@ -4554,7 +4676,8 @@ function updateHoursTracker() {
   const th = Math.floor(taskHours);
   const tm = Math.round((taskHours - th) * 60);
   remainingTimeEl.textContent = th + 'h ' + (tm > 0 ? tm + 'm' : '');
-  remainingDetail.textContent = flowTasks.filter(t => t.state !== 'done').length + ' active task' + (flowTasks.filter(t => t.state !== 'done').length !== 1 ? 's' : '');
+  const visibleActiveTasks = flowTasks.filter(t => t.state !== 'done' && shouldShowTask(t));
+  remainingDetail.textContent = visibleActiveTasks.length + ' active task' + (visibleActiveTasks.length !== 1 ? 's' : '');
   
   // Status indicator
   if (taskHours === 0) {
@@ -4598,6 +4721,7 @@ function discardTask(id) {
   renderFlowList();
   renderCalendarView();  // Update calendar too
   updateHoursTracker();
+  closeDropdownAfterAction();
 }
 
 function restoreTask(id) {
@@ -4648,6 +4772,7 @@ function minimizeTask(taskId) {
   saveFlowData();
   renderFlowList();
   renderMinimizedTasks();
+  closeDropdownAfterAction();
 }
 
 function restoreMinimizedTask(taskId) {
@@ -4732,9 +4857,10 @@ function loadMinimizedPanelState() {
 // ║ NEW FEATURE: ESTIMATED COMPLETION TIME                        ║
 // ║ This function calculates when your task will be done          ║
 // ╚════════════════════════════════════════════════════════════════╝
-function getEstimatedEndTime(t) {
-  if (t.state !== 'running') return null;
-  const worked = totalWorkedSecs(t);
+function getEstimatedEndTime(t, dateStr = null) {
+  const taskState = dateStr ? getTaskStateForDate(t, dateStr) : (t.state || 'idle');
+  if (taskState !== 'running') return null;
+  const worked = totalWorkedSecs(t, dateStr);
   const remaining = Math.max(t.allocSecs - worked, 0);
   if (remaining === 0) return null;
   const endMs = Date.now() + (remaining * 1000);
@@ -4750,6 +4876,7 @@ function saveUserName() {
     return;
   }
   localStorage.setItem('tempow_user_name', userName);
+  localStorage.setItem('tempow_welcome_shown', 'true');
   document.getElementById('welcomeModal').classList.remove('open');
   displayUserName();
 }
@@ -4763,8 +4890,8 @@ function displayUserName() {
 }
 
 function checkFirstVisit() {
-  const hasVisited = localStorage.getItem('tempow_user_name');
-  if (!hasVisited) {
+  const hasSeenWelcome = localStorage.getItem('tempow_welcome_shown');
+  if (!hasSeenWelcome) {
     const modal = document.getElementById('welcomeModal');
     if (modal) {
       modal.classList.add('open');
@@ -4975,10 +5102,12 @@ function setViewMode(mode) {
 function shouldShowTask(task) {
   // Check state and type filters
   let stateTypeMatch = false;
+  const taskState = getCurrentTaskState(task);
+
   if (activeFilters.all) {
     stateTypeMatch = true;
   } else {
-    const stateMatch = activeFilters[task.state] || false;
+    const stateMatch = activeFilters[taskState] || false;
     const typeMatch = (task.isUntimed && activeFilters.untimed) || (!task.isUntimed && activeFilters.timed) || false;
     stateTypeMatch = stateMatch || typeMatch;
   }
@@ -4998,6 +5127,120 @@ function getTaskScheduledDates(task) {
     });
   }
   return dates;
+}
+
+// ── Per-Date Task State Functions ──────────────────────────────
+// Track state separately for each date when a task is scheduled on multiple dates
+let timerViewingDate = null;  // Current date being viewed in timer
+
+function getDateString(date) {
+  if (typeof date === 'string') return date;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getContextDateStr() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  switch (activeDateRange) {
+    case 'today':
+      return getDateString(today);
+    case 'tomorrow': {
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return getDateString(tomorrow);
+    }
+    case 'yesterday': {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return getDateString(yesterday);
+    }
+    case 'custom':
+      return customDateFilter || null;
+    default:
+      return null;
+  }
+}
+
+function getCurrentTaskState(task) {
+  const dateStr = getContextDateStr();
+  if (dateStr && Array.isArray(task.scheduledDates) && task.scheduledDates.includes(dateStr)) {
+    return getTaskStateForDate(task, dateStr);
+  }
+  return task.state || 'idle';
+}
+
+function setCurrentTaskState(task, newState) {
+  const dateStr = getContextDateStr();
+  if (dateStr && Array.isArray(task.scheduledDates) && task.scheduledDates.includes(dateStr) && task.scheduledDates.length > 1) {
+    setTaskStateForDate(task, dateStr, newState);
+  } else {
+    task.state = newState;
+  }
+}
+
+function getCurrentTaskSegments(task) {
+  const dateStr = getContextDateStr();
+  if (dateStr && Array.isArray(task.scheduledDates) && task.scheduledDates.includes(dateStr) && task.scheduledDates.length > 1) {
+    return getTaskSegmentsForDate(task, dateStr);
+  }
+  return task.segments || [];
+}
+
+function getCurrentTaskSegmentsMutable(task) {
+  const dateStr = getContextDateStr();
+  if (dateStr && Array.isArray(task.scheduledDates) && task.scheduledDates.includes(dateStr) && task.scheduledDates.length > 1) {
+    if (!task.segmentsByDate) task.segmentsByDate = {};
+    if (!task.segmentsByDate[dateStr]) task.segmentsByDate[dateStr] = [];
+    return task.segmentsByDate[dateStr];
+  }
+  if (!task.segments) task.segments = [];
+  return task.segments;
+}
+
+function getTaskStateForDate(task, dateStr) {
+  // If task has multiple dates, use per-date state tracking
+  if (Array.isArray(task.scheduledDates) && task.scheduledDates.length > 1) {
+    if (!task.stateByDate) task.stateByDate = {};
+    return task.stateByDate[dateStr] || 'idle';
+  }
+  // Single date tasks use task.state directly
+  return task.state || 'idle';
+}
+
+function setTaskStateForDate(task, dateStr, newState) {
+  // If task has multiple dates, use per-date state tracking
+  if (Array.isArray(task.scheduledDates) && task.scheduledDates.length > 1) {
+    if (!task.stateByDate) task.stateByDate = {};
+    task.stateByDate[dateStr] = newState;
+  } else {
+    // Single date tasks use task.state directly
+    task.state = newState;
+  }
+}
+
+function getTaskSegmentsForDate(task, dateStr) {
+  // If task has multiple dates, use per-date segments
+  if (Array.isArray(task.scheduledDates) && task.scheduledDates.length > 1) {
+    if (!task.segmentsByDate) task.segmentsByDate = {};
+    return task.segmentsByDate[dateStr] || [];
+  }
+  // Single date tasks use task.segments directly
+  return task.segments || [];
+}
+
+function setTaskSegmentsForDate(task, dateStr, newSegments) {
+  // If task has multiple dates, use per-date segments
+  if (Array.isArray(task.scheduledDates) && task.scheduledDates.length > 1) {
+    if (!task.segmentsByDate) task.segmentsByDate = {};
+    task.segmentsByDate[dateStr] = newSegments;
+  } else {
+    // Single date tasks use task.segments directly
+    task.segments = newSegments;
+  }
 }
 
 function getTaskScheduleTimestamp(task) {
@@ -5428,7 +5671,58 @@ function openNotesModal(taskId) {
   document.getElementById('notesTaskName').textContent = `Task: ${t.name}`;
   document.getElementById('notesInput').value = t.notes || '';
   document.getElementById('notesModal').classList.add('open');
+  closeDropdownAfterAction();
   setTimeout(() => document.getElementById('notesInput').focus(), 60);
+}
+
+// ── Task Edit Name Modal ──────────────────────────────────
+let editNameModalTaskId = null;
+
+function openEditTaskName(taskId) {
+  editNameModalTaskId = taskId;
+  const t = flowTasks.find(x => x.id === taskId);
+  if (!t) return;
+
+  document.getElementById('editNameInput').value = t.name;
+  document.getElementById('editNameModal').classList.add('open');
+  closeDropdownAfterAction();
+  setTimeout(() => document.getElementById('editNameInput').focus(), 60);
+  setTimeout(() => document.getElementById('editNameInput').select(), 80);
+}
+
+function closeEditNameModal() {
+  document.getElementById('editNameModal').classList.remove('open');
+  editNameModalTaskId = null;
+  document.getElementById('editNameInput').value = '';
+}
+
+function saveTaskName() {
+  if (!editNameModalTaskId) return;
+  const t = flowTasks.find(x => x.id === editNameModalTaskId);
+  if (!t) return;
+
+  const newName = document.getElementById('editNameInput').value.trim();
+  if (!newName) {
+    alert('Task name cannot be empty.');
+    return;
+  }
+  if (newName === t.name) {
+    closeEditNameModal();
+    return;
+  }
+
+  t.name = newName;
+  saveFlowData();
+  closeEditNameModal();
+  renderFlowList();
+
+  // Show confirmation
+  const btn = document.querySelector('#editNameModal .btn-confirm');
+  if (btn) {
+    const originalText = btn.textContent;
+    btn.textContent = '✓ Saved';
+    setTimeout(() => { btn.textContent = originalText; }, 1200);
+  }
 }
 
 function closeNotesModal() {
@@ -5464,18 +5758,70 @@ document.getElementById('notesInput')?.addEventListener('keydown', (e) => {
   }
 });
 
+// Handle Enter to save task name
+document.getElementById('editNameInput')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    saveTaskName();
+  }
+});
+
+// ── Dropdown toggle for task controls ────────────────────────────────────
+function toggleTaskDropdown(dropdownId) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+  
+  // Close all other dropdowns
+  document.querySelectorAll('.dropdown-menu.open').forEach(menu => {
+    if (menu.id !== dropdownId) {
+      menu.classList.remove('open');
+      // Reset button state
+      const btn = menu.previousElementSibling;
+      if (btn) btn.classList.remove('active');
+    }
+  });
+  
+  // Toggle this dropdown
+  dropdown.classList.toggle('open');
+  const btn = dropdown.previousElementSibling;
+  if (btn) btn.classList.toggle('active');
+}
+
+// Close all dropdowns
+function closeAllTaskDropdowns() {
+  document.querySelectorAll('.dropdown-menu.open').forEach(menu => {
+    menu.classList.remove('open');
+    const btn = menu.previousElementSibling;
+    if (btn) btn.classList.remove('active');
+  });
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+  if (!event.target.closest('.task-controls-dropdown')) {
+    closeAllTaskDropdowns();
+  }
+});
+
+// Close dropdown after action (wrapped in setTimeout to ensure UI update)
+function closeDropdownAfterAction() {
+  setTimeout(closeAllTaskDropdowns, 50);
+}
+
 // ── Task controls ────────────────────────────────────
 function startTask(id) {
-  flowTasks.forEach(t => { if (t.state==='running') openBreakModal(t.id); });
-  const anyRunning = flowTasks.some(t => t.state==='running');
+  flowTasks.forEach(t => { if (getCurrentTaskState(t)==='running') openBreakModal(t.id); });
+  const anyRunning = flowTasks.some(t => getCurrentTaskState(t)==='running');
   if (!anyRunning) {
     const t = flowTasks.find(x => x.id===id);
-    if (t && t.state!=='done') {
-      t.state = 'running';
-      t.segments.push({type:'work', secs:0, startTs:Date.now(), endTs:null, note:'', breakLimitSecs:0});
+    const currentDateStr = getContextDateStr();
+    if (t && getCurrentTaskState(t) !== 'done') {
+      setCurrentTaskState(t, 'running');
+      const segments = getCurrentTaskSegmentsMutable(t);
+      segments.push({type:'work', secs:0, startTs:Date.now(), endTs:null, note:'', breakLimitSecs:0});
       ensureTick();
     }
     renderFlowList();
+    closeDropdownAfterAction();
   } else {
     _queuedStart = id;
   }
@@ -5489,16 +5835,19 @@ function pauseTask(id) {
 
 function _commitPause(id, note, limitSecs) {
   const t = flowTasks.find(x => x.id===id);
-  if (!t || t.state!=='running') return;
-  const live = liveSegment(t);
+  const currentDateStr = getContextDateStr();
+  if (!t || getCurrentTaskState(t)!=='running') return;
+  const live = liveSegment(t, currentDateStr);
   if (live) live.endTs = Date.now();
-  t.state = 'paused';
-  t.segments.push({type:'break', secs:0, startTs:Date.now(), endTs:null, note, breakLimitSecs:limitSecs, overrun:false});
+  setCurrentTaskState(t, 'paused');
+  const segments = getCurrentTaskSegmentsMutable(t);
+  segments.push({type:'break', secs:0, startTs:Date.now(), endTs:null, note, breakLimitSecs:limitSecs, overrun:false});
   if (_queuedStart && _queuedStart !== id) {
     const next = flowTasks.find(x => x.id===_queuedStart);
-    if (next && next.state!=='done') {
-      next.state = 'running';
-      next.segments.push({type:'work', secs:0, startTs:Date.now(), endTs:null, note:'', breakLimitSecs:0});
+    if (next && getCurrentTaskState(next) !== 'done') {
+      setCurrentTaskState(next, 'running');
+      const nextSegments = getCurrentTaskSegmentsMutable(next);
+      nextSegments.push({type:'work', secs:0, startTs:Date.now(), endTs:null, note:'', breakLimitSecs:0});
     }
   }
   _queuedStart = null;
@@ -5508,12 +5857,14 @@ function _commitPause(id, note, limitSecs) {
 
 function _stopTaskPermanently(id, note) {
   const t = flowTasks.find(x => x.id===id);
-  if (!t || t.state!=='running') return;
-  const live = liveSegment(t);
+  const currentDateStr = getContextDateStr();
+  if (!t || getCurrentTaskState(t)!=='running') return;
+  const live = liveSegment(t, currentDateStr);
   if (live) live.endTs = Date.now();
-  t.state = 'paused';
+  setCurrentTaskState(t, 'paused');
+  const segments = getCurrentTaskSegmentsMutable(t);
   // Create a permanent break segment (ends immediately, no timer)
-  t.segments.push({type:'break', secs:0, startTs:Date.now(), endTs:Date.now(), note, breakLimitSecs:0, overrun:false, isPermanent:true});
+  segments.push({type:'break', secs:0, startTs:Date.now(), endTs:Date.now(), note, breakLimitSecs:0, overrun:false, isPermanent:true});
   stopRepeatingAlarm();
   _queuedStart = null;
   renderFlowList();
@@ -5521,63 +5872,72 @@ function _stopTaskPermanently(id, note) {
 
 // Prompt and create a permanent break for a task (UI helper)
 function openPermanentBreak(id) {
+  closeDropdownAfterAction();
   const note = prompt('Permanent pause reason (optional):', '');
   _stopTaskPermanently(id, note || '');
 }
 
 function resumeTask(id) {
-  flowTasks.forEach(t => { if (t.state==='running') _commitPauseImmediate(t.id); });
+  flowTasks.forEach(t => { if (getCurrentTaskState(t)==='running') _commitPauseImmediate(t.id); });
   const t = flowTasks.find(x => x.id===id);
-  if (t && t.state==='paused') {
-    const live = liveSegment(t);
+  const currentDateStr = getContextDateStr();
+  if (t && getCurrentTaskState(t)==='paused') {
+    const live = liveSegment(t, currentDateStr);
     if (live) live.endTs = Date.now();
-    t.state = 'running';
-    t.segments.push({type:'work', secs:0, startTs:Date.now(), endTs:null, note:'', breakLimitSecs:0});
+    setCurrentTaskState(t, 'running');
+    const segments = getCurrentTaskSegmentsMutable(t);
+    segments.push({type:'work', secs:0, startTs:Date.now(), endTs:null, note:'', breakLimitSecs:0});
     stopRepeatingAlarm();
     ensureTick(); closeTip();
   }
   renderFlowList();
+  closeDropdownAfterAction();
 }
 
 function _commitPauseImmediate(id) {
   const t = flowTasks.find(x => x.id===id);
-  if (!t || t.state!=='running') return;
-  const live = liveSegment(t);
+  const currentDateStr = getContextDateStr();
+  if (!t || getCurrentTaskState(t)!=='running') return;
+  const live = liveSegment(t, currentDateStr);
   if (live) live.endTs = Date.now();
-  t.state = 'paused';
-  t.segments.push({type:'break', secs:0, startTs:Date.now(), endTs:null, note:'', breakLimitSecs:0, overrun:false});
+  setCurrentTaskState(t, 'paused');
+  const segments = getCurrentTaskSegmentsMutable(t);
+  segments.push({type:'break', secs:0, startTs:Date.now(), endTs:null, note:'', breakLimitSecs:0, overrun:false});
 }
 
 function markDone(id) {
   const t = flowTasks.find(x => x.id===id);
   if (!t) return;
-  const worked = totalWorkedSecs(t);
+  const currentDateStr = getContextDateStr();
+  const worked = totalWorkedSecs(t, currentDateStr);
   if (worked < t.allocSecs * 0.5) {
     alert(`You need to complete at least 50% of the allocated time before marking done.\n\nWorked: ${fmtDurF(worked)} / ${fmtDurF(t.allocSecs*0.5)} minimum.`);
     return;
   }
-  const live = liveSegment(t);
+  const live = liveSegment(t, currentDateStr);
   if (live) live.endTs = Date.now();
-  t.state = 'done';
+  setCurrentTaskState(t, 'done');
   stopRepeatingAlarm();
   playDing();
   showDoneBanner(t.name);
   autoSyncCompletedTask(t);
   renderFlowList();
   saveFlowData();
+  closeDropdownAfterAction();
 }
 
 function markUntimeTaskDone(id) {
   const t = flowTasks.find(x => x.id===id);
   if (!t || !t.isUntimed) return;
   
-  t.state = 'done';
+  setCurrentTaskState(t, 'done');
   stopRepeatingAlarm();
   playDing();
   showDoneBanner(t.name);
   autoSyncCompletedTask(t);
   renderFlowList();
   saveFlowData();
+  closeDropdownAfterAction();
 }
 
 function deleteFlowTask(id) {
@@ -5640,38 +6000,39 @@ function ensureTick() {
   if (globalTick) return;
   globalTick = setInterval(() => {
     let any = false;
+    const currentDateStr = getContextDateStr();
     flowTasks.forEach(t => {
-      if (t.state === 'running' || t.state === 'paused') {
-        const live = liveSegment(t);
+      const taskState = getCurrentTaskState(t);
+      if (taskState === 'running' || taskState === 'paused') {
+        const live = liveSegment(t, currentDateStr);
         if (live) { live.secs++; any = true; }
 
-        if (t.state === 'running' && totalWorkedSecs(t) >= t.allocSecs) {
+        if (taskState === 'running' && totalWorkedSecs(t, currentDateStr) >= t.allocSecs) {
           if (live) live.endTs = Date.now();
-          t.state = 'done'; 
+          setCurrentTaskState(t, 'done');
           autoSyncCompletedTask(t);
-          playDing(); 
-          showDoneBanner(t.name); 
-          renderFlowList(); 
+          playDing();
+          showDoneBanner(t.name);
+          renderFlowList();
           return;
         }
 
         // ── Split timing detection ──────────────────────────────────
-        if (t.state === 'running' && t.splits && t.splits.length > 0) {
-          const workedSecs = totalWorkedSecs(t);
+        if (taskState === 'running' && (t.splits && t.splits.length > 0)) {
+          const workedSecs = totalWorkedSecs(t, currentDateStr);
           t.splits.forEach(split => {
             const splitAtSecs = split.position * t.allocSecs;
             // Check if just reached this split point (within 1 second)
             if (!split.triggered && Math.abs(workedSecs - splitAtSecs) < 1.1) {
               split.triggered = true;
-              // Auto-commit a break at this split point
               const note = `Split timing break #${t.splits.filter(s => s.triggered).length}`;
-              _commitPause(t.id, note, 0); // 0 means no time limit, breaks when manually resumed
-              playDing(); // Ring once on split, no continuous alarm
+              _commitPause(t.id, note, 0);
+              playDing();
             }
           });
         }
 
-        if (t.state === 'paused' && live && live.breakLimitSecs > 0) {
+        if (taskState === 'paused' && live && live.breakLimitSecs > 0) {
           if (live.secs >= live.breakLimitSecs && !live.overrun) {
             live.overrun = true;
             startRepeatingAlarm(t.id, t.name);
@@ -5780,17 +6141,18 @@ function closeTip() {
   document.querySelectorAll('.brk-tip').forEach(e => e.remove());
 }
 
-function toggleTip(taskId, segIdx, segEl, event) {
+function toggleTip(taskId, segIdx, segEl, event, dateStr = null) {
   event.stopPropagation();
-  if (openTip && openTip.taskId===taskId && openTip.segIdx===segIdx) { closeTip(); return; }
+  if (openTip && openTip.taskId===taskId && openTip.segIdx===segIdx && openTip.dateStr === dateStr) { closeTip(); return; }
   closeTip();
-  openTip = {taskId, segIdx};
+  openTip = {taskId, segIdx, dateStr};
   const t = flowTasks.find(x => x.id===taskId);
   if (!t) return;
-  const seg = t.segments[segIdx];
+  const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
+  const seg = segments[segIdx];
   if (!seg || seg.type!=='break') return;
   const isLive = !seg.endTs;
-  const breakNum = t.segments.slice(0,segIdx+1).filter(s=>s.type==='break').length;
+  const breakNum = segments.slice(0,segIdx+1).filter(s=>s.type==='break').length;
   const limitTxt = seg.breakLimitSecs > 0 ? `Limit: ${fmtDurF(seg.breakLimitSecs)}` : 'No time limit';
   const overrunTxt = seg.overrun ? `<div style="color:var(--danger);font-size:10px;margin-top:4px;font-weight:500;">⚠ Break limit exceeded</div>` : '';
 
@@ -5806,7 +6168,7 @@ function toggleTip(taskId, segIdx, segEl, event) {
     <div class="tip-lbl">Reason</div>
     <textarea class="tip-note" rows="2" placeholder="Why did you take this break?">${seg.note||''}</textarea>`;
   tip.querySelector('textarea').addEventListener('input', e => {
-    if (t.segments[segIdx]) t.segments[segIdx].note = e.target.value;
+    if (segments[segIdx]) segments[segIdx].note = e.target.value;
   });
   tip.addEventListener('click', e => e.stopPropagation());
   segEl.style.overflow = 'visible';
@@ -5818,22 +6180,25 @@ function toggleTip(taskId, segIdx, segEl, event) {
 }
 
 // ── Bar rendering ─────────────────────────────────────
-function buildBarHTML(t) {
-  const tb = totalBreakSecs(t);
+function buildBarHTML(t, dateStr = null) {
+  const tb = totalBreakSecs(t, dateStr);
   const span = Math.max(t.allocSecs + tb, 1);
+  const taskState = dateStr ? getTaskStateForDate(t, dateStr) : (t.state || 'idle');
+  const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
   let html = '', offset = 0;
-  t.segments.forEach((seg, i) => {
+  segments.forEach((seg, i) => {
     const w = (seg.secs / span) * 100;
     if (w < 0.01) return;
     if (seg.type === 'work') {
-      const color = t.state==='done' ? 'var(--done)' : 'var(--active)';
+      const color = taskState === 'done' ? 'var(--done)' : 'var(--active)';
       html += `<div style="position:absolute;left:${offset.toFixed(3)}%;width:${w.toFixed(3)}%;height:100%;background:${color};"></div>`;
     } else {
       const isLive = !seg.endTs;
       const isOverrun = seg.overrun;
+      const dateArg = dateStr ? JSON.stringify(dateStr) : 'null';
       html += `<div class="brk-seg${isLive?' live':''}${isOverrun?' overrun':''}"
         style="position:absolute;left:${offset.toFixed(3)}%;width:${w.toFixed(3)}%;height:100%;"
-        onclick="toggleTip(${t.id},${i},this,event)"></div>`;
+        onclick="toggleTip(${t.id},${i},this,event,${dateArg})"></div>`;
     }
     offset += w;
   });
@@ -5897,13 +6262,15 @@ function addNewSplit(taskId) {
 
 // ── Live update (no re-render) ────────────────────────
 function updateLiveFlow() {
+  const currentDateStr = getContextDateStr();
   flowTasks.forEach(t => {
     const el = document.getElementById('flow-card-'+t.id); if (!el) return;
     const digs = el.querySelector('.timer-digits'), lbl = el.querySelector('.timer-label');
-    const worked = totalWorkedSecs(t), brk = totalBreakSecs(t);
-    const live = liveSegment(t);
+    const worked = totalWorkedSecs(t, currentDateStr), brk = totalBreakSecs(t, currentDateStr);
+    const live = liveSegment(t, currentDateStr);
+    const taskState = getCurrentTaskState(t);
 
-    if (t.state === 'running') {
+    if (taskState === 'running') {
       digs.textContent = fmtF(Math.max(t.allocSecs-worked,0)); lbl.textContent = 'remaining';
       
       // ╔════════════════════════════════════════════════════════════════╗
@@ -5912,10 +6279,10 @@ function updateLiveFlow() {
       // ╚════════════════════════════════════════════════════════════════╝
       const estEl = el.querySelector('.task-estimate-time');
       if (estEl) {
-        const estTime = getEstimatedEndTime(t);
+        const estTime = getEstimatedEndTime(t, currentDateStr);
         estEl.textContent = estTime || '—';
       }
-    } else if (t.state === 'paused' && live) {
+    } else if (taskState === 'paused' && live) {
       if (live.breakLimitSecs>0 && !live.overrun) {
         const left = live.breakLimitSecs - live.secs;
         digs.textContent = fmtF(Math.max(left,0)); lbl.textContent = 'break left';
@@ -5928,9 +6295,9 @@ function updateLiveFlow() {
     }
 
     const barTrack = el.querySelector('.bar-track');
-    if (barTrack) barTrack.innerHTML = buildBarHTML(t);
+    if (barTrack) barTrack.innerHTML = buildBarHTML(t, currentDateStr);
 
-    const isOverrun = t.state==='paused' && live && live.overrun;
+    const isOverrun = taskState==='paused' && live && live.overrun;
     el.classList.toggle('break-overrun', isOverrun);
 
     if (live && openTip && openTip.taskId===t.id) {
@@ -5975,20 +6342,15 @@ function getCurrentGapTime() {
 }
 
 function updateFlowStats() {
+  const currentDateStr = getContextDateStr();
   let worked=0, brk=0;
-  flowTasks.forEach(t=>{ worked+=totalWorkedSecs(t); brk+=totalBreakSecs(t); });
+  flowTasks.forEach(t=>{ worked+=totalWorkedSecs(t, currentDateStr); brk+=totalBreakSecs(t, currentDateStr); });
   
   // Calculate total gaps (completed gaps + current ongoing gap)
-  const gaps = calculateTaskGaps();
-  const completedGapsSecs = gaps.reduce((a, g) => a + g.gapSecs, 0);
-  const currentGapSecs = getCurrentGapTime();
-  const totalGapsSecs = completedGapsSecs + currentGapSecs;
-  
   document.getElementById('s-total').textContent = flowTasks.length;
-  document.getElementById('s-done').textContent = flowTasks.filter(t=>t.state==='done').length;
+  document.getElementById('s-done').textContent = flowTasks.filter(t=>getCurrentTaskState(t)==='done').length;
   document.getElementById('s-worked').textContent = fmtF(worked);
   document.getElementById('s-break').textContent = fmtF(brk);
-  document.getElementById('s-gaps').textContent = fmtF(totalGapsSecs);
 }
 
 function renderFlowList() {
@@ -6011,12 +6373,13 @@ function renderFlowList() {
   
   // Filter tasks based on active filters AND exclude minimized tasks
   const filteredTasks = allTasks.filter(t => !t.isMinimized && shouldShowTask(t));
+  const currentDateStr = getContextDateStr();
   
   // Sort tasks: running > paused (break) > idle > done (FULLY AUTOMATIC)
   const sortedTasks = [...filteredTasks].sort((a, b) => {
     const stateOrder = {running: 0, paused: 1, idle: 2, done: 3};
-    const orderA = stateOrder[a.state] ?? 4;
-    const orderB = stateOrder[b.state] ?? 4;
+    const orderA = stateOrder[getCurrentTaskState(a)] ?? 4;
+    const orderB = stateOrder[getCurrentTaskState(b)] ?? 4;
     if (orderA !== orderB) return orderA - orderB;
 
     const timeA = getTaskScheduleTimestamp(a);
@@ -6027,18 +6390,21 @@ function renderFlowList() {
   });
   
   sortedTasks.forEach(t => {
-    const worked = totalWorkedSecs(t), brk = totalBreakSecs(t);
-    const live = liveSegment(t);
-    const breakCount = t.segments.filter(s=>s.type==='break').length;
+    const taskState = getCurrentTaskState(t);
+    const taskSegments = currentDateStr ? getTaskSegmentsForDate(t, currentDateStr) : (t.segments || []);
+    const worked = totalWorkedSecs(t, currentDateStr);
+    const brk = totalBreakSecs(t, currentDateStr);
+    const live = liveSegment(t, currentDateStr);
+    const breakCount = taskSegments.filter(s=>s.type==='break').length;
     const remaining = Math.max(t.allocSecs-worked, 0);
-    const isOverrun = t.state==='paused' && live && live.overrun;
+    const isOverrun = taskState==='paused' && live && live.overrun;
 
     let digsText, labelText;
     if (t.isUntimed) {
       // For untimed tasks, show completion state
-      digsText = t.state === 'done' ? '✓' : '☐';
-      labelText = t.state === 'done' ? 'complete' : 'pending';
-    } else if (t.state==='paused' && live) {
+      digsText = taskState === 'done' ? '✓' : '☐';
+      labelText = taskState === 'done' ? 'complete' : 'pending';
+    } else if (taskState==='paused' && live) {
       if (live.breakLimitSecs>0 && !live.overrun) {
         digsText = fmtF(Math.max(live.breakLimitSecs-live.secs,0)); labelText = 'break left';
       } else if (live.overrun) {
@@ -6046,60 +6412,95 @@ function renderFlowList() {
       } else {
         digsText = fmtF(live.secs); labelText = 'on break';
       }
-    } else if (t.state === 'paused' && !live) {
+    } else if (taskState === 'paused' && !live) {
       // Paused but no active (live) break segment — could be a permanent pause
-      const lastBreak = t.segments.slice().reverse().find(s => s.type === 'break');
+      const lastBreak = taskSegments.slice().reverse().find(s => s.type === 'break');
       if (lastBreak && lastBreak.isPermanent) {
         digsText = '—'; labelText = 'paused';
       } else {
         digsText = fmtF(remaining); labelText = 'on break';
       }
     } else {
-      digsText = fmtF(remaining); labelText = t.state==='done'?'done':'remaining';
+      digsText = fmtF(remaining); labelText = taskState==='done'?'done':'remaining';
     }
 
-    const pillClass = {running:'pill-running',paused:'pill-break',done:'pill-done',idle:'pill-idle'}[t.state];
-    const pillText  = {running:'Running',paused:'Break',done:'Done',idle:'Idle'}[t.state];
+    const pillClass = {running:'pill-running',paused:'pill-break',done:'pill-done',idle:'pill-idle'}[taskState];
+    const pillText  = {running:'Running',paused:'Break',done:'Done',idle:'Idle'}[taskState];
     const inTray = tray.some(x=>x.id===t.id);
 
-    const canDone = (t.state==='running'||t.state==='paused') && worked >= t.allocSecs*0.5;
+    const canDone = (taskState==='running'||taskState==='paused') && worked >= t.allocSecs*0.5;
 
-    let ctrl = '';
+    // Build PRIMARY ACTION BUTTONS (visible on card)
+    let visibleBtns = '';
+    let primaryAction = '';
     
-    // For untimed tasks, show different control buttons
+    // For untimed tasks
     if (t.isUntimed) {
-      if (t.state !== 'done') {
-        ctrl += `<button class="btn done-early" onclick="markUntimeTaskDone(${t.id})" title="Mark task as complete"><span class="btn-icon">✓</span> <span class="btn-text">Done</span></button>`;
+      if (taskState !== 'done') {
+        visibleBtns += `<button class="btn done-early" onclick="markUntimeTaskDone(${t.id})" title="Mark task as complete"><span class="btn-icon">✓</span> <span class="btn-text">Done</span></button>`;
       } else {
-        ctrl += `<button class="btn" disabled><span class="btn-icon">✓</span> <span class="btn-text">Complete</span></button>`;
+        visibleBtns += `<button class="btn" disabled><span class="btn-icon">✓</span> <span class="btn-text">Complete</span></button>`;
       }
     } else {
-      // Regular timed task controls
-      if (t.state==='idle')    ctrl += `<button class="btn start"  onclick="startTask(${t.id})"><span class="btn-icon">▶</span> <span class="btn-text">Start</span></button>`;
-      if (t.state==='running') ctrl += `<button class="btn pause"  onclick="pauseTask(${t.id})"><span class="btn-icon">⏸</span> <span class="btn-text">Pause</span></button>`;
-      if (t.state==='paused')  ctrl += `<button class="btn resume" onclick="resumeTask(${t.id})"><span class="btn-icon">▶</span> <span class="btn-text">Resume</span></button>`;
-      // Add split timing button for running/paused tasks - PROMINENT PLACEMENT
-      if ((t.state==='running' || t.state==='paused') && (!t.isUntimed)) {
-        // Permanent break: pauses the task without creating a live timed break
-        ctrl += `<button class="btn perm-break" onclick="openPermanentBreak(${t.id})" title="Permanent pause (no timer)"><span class="btn-icon">⏸</span> <span class="btn-text">Perm</span></button>`;
-      }
-      if (t.state==='done')    ctrl += `<button class="btn" disabled><span class="btn-icon">✓</span> <span class="btn-text">Complete</span></button>`;
-      if (canDone) ctrl += `<button class="btn done-early" onclick="markDone(${t.id})" title="Mark as done early (only available after 50% of time)"><span class="btn-icon">✓</span> <span class="btn-text">Done</span></button>`;
-      ctrl += `<button class="btn" onclick="openExtendModal(${t.id})" title="Add extra time (max 25% of initial)"><span class="btn-icon">⏱</span> <span class="btn-text">Extend</span></button>`;
-      
-      // Show merge or unmerge button based on status
-      if (t.isMerged) {
-        ctrl += `<button class="btn" onclick="unmergeTask(${t.id})" title="Split this merged task back into original tasks" style="color:var(--break);"><span class="btn-icon">⤴</span> <span class="btn-text">Unmerge</span></button>`;
-      } else {
-        ctrl += `<button class="btn" onclick="openMergeModal(${t.id})" title="Merge with another task"><span class="btn-icon">🔀</span> <span class="btn-text">Merge</span></button>`;
+      // Regular timed task - visible action buttons
+      if (taskState==='idle') {
+        visibleBtns += `<button class="btn start" onclick="startTask(${t.id})"><span class="btn-icon">▶</span> <span class="btn-text">Start</span></button>`;
+      } else if (taskState==='running') {
+        visibleBtns += `<button class="btn pause" onclick="pauseTask(${t.id})"><span class="btn-icon">⏸</span> <span class="btn-text">Pause</span></button>`;
+      } else if (taskState==='paused') {
+        visibleBtns += `<button class="btn resume" onclick="resumeTask(${t.id})"><span class="btn-icon">▶</span> <span class="btn-text">Resume</span></button>`;
+      } else if (taskState==='done') {
+        visibleBtns += `<button class="btn" disabled><span class="btn-icon">✓</span> <span class="btn-text">Complete</span></button>`;
       }
     }
     
-    ctrl += `<button class="btn transfer-btn${inTray?' in-tray':''}" onclick="addToTray(${t.id},'flow')" title="Send to 24h Clock"><span class="btn-icon">⇄</span> <span class="btn-text">Clock</span></button>`;
-    ctrl += `<button class="btn" onclick="openNotesModal(${t.id})" title="Add/edit quick notes for tomorrow"><span class="btn-icon">📝</span> <span class="btn-text">Notes</span></button>`;
-    ctrl += `<button class="btn" onclick="exportSingleFlowTask(${t.id})" title="Download this task as JSON"><span class="btn-icon">↓</span> <span class="btn-text">JSON</span></button>`;
-    ctrl += `<button class="btn" onclick="minimizeTask(${t.id})" title="Minimize task to floating panel"><span class="btn-icon">−</span> <span class="btn-text">Minimize</span></button>`;
-    ctrl += `<button class="btn discard" onclick="discardTask(${t.id})" title="Hide this task temporarily to focus on others"><span class="btn-icon">⊘</span> <span class="btn-text">Discard</span></button>`;
+    // Add NOTE button as visible
+    visibleBtns += `<button class="btn" onclick="openNotesModal(${t.id})" title="Add/edit notes"><span class="btn-icon">📝</span> <span class="btn-text">Note</span></button>`;
+    
+    // Build DROPDOWN MENU (all other options)
+    let dropdownItems = '';
+    
+    // Add permanent break option for running/paused tasks
+    if ((taskState==='running' || taskState==='paused') && (!t.isUntimed)) {
+      dropdownItems += `<button class="dropdown-item" onclick="openPermanentBreak(${t.id})"><span class="btn-icon">⏸</span> Perm Break</button>`;
+    }
+    
+    // Add done early if available
+    if (canDone && !t.isUntimed) {
+      dropdownItems += `<button class="dropdown-item" onclick="markDone(${t.id})"><span class="btn-icon">✓</span> Done Early</button>`;
+    }
+    
+    // Add extend for timed tasks
+    if (!t.isUntimed) {
+      dropdownItems += `<button class="dropdown-item" onclick="openExtendModal(${t.id})"><span class="btn-icon">⏱</span> Extend Time</button>`;
+      
+      // Show merge or unmerge
+      if (t.isMerged) {
+        dropdownItems += `<button class="dropdown-item" onclick="unmergeTask(${t.id})"><span class="btn-icon">⤴</span> Unmerge</button>`;
+      } else {
+        dropdownItems += `<button class="dropdown-item" onclick="openMergeModal(${t.id})"><span class="btn-icon">🔀</span> Merge</button>`;
+      }
+    }
+    
+    // Add common options in dropdown
+    dropdownItems += `<button class="dropdown-item" onclick="openEditTaskName(${t.id})"><span class="btn-icon">✎</span> Edit Name</button>`;
+    dropdownItems += `<button class="dropdown-item" onclick="addToTray(${t.id},'flow')"><span class="btn-icon">⇄</span> Clock</button>`;
+    dropdownItems += `<button class="dropdown-item" onclick="exportSingleFlowTask(${t.id})"><span class="btn-icon">↓</span> JSON</button>`;
+    dropdownItems += `<button class="dropdown-item" onclick="minimizeTask(${t.id})"><span class="btn-icon">−</span> Minimize</button>`;
+    dropdownItems += `<button class="dropdown-item danger" onclick="discardTask(${t.id})"><span class="btn-icon">⊘</span> Discard</button>`;
+    
+    // Build the dropdown control with more options button
+    const dropdownId = `dropdown-${t.id}`;
+    let ctrl = visibleBtns + `
+      <div class="task-controls-dropdown">
+        <button class="dropdown-toggle" onclick="toggleTaskDropdown('${dropdownId}')" title="More options">
+          <span style="font-size: 12px;">⋯</span>
+        </button>
+        <div class="dropdown-menu" id="${dropdownId}">
+          ${dropdownItems}
+        </div>
+      </div>
+    `;
 
     // Apply view mode styling
     const card = document.createElement('div');
@@ -6107,7 +6508,7 @@ function renderFlowList() {
     cardClass += currentViewMode === 'card' ? ' card-view' : '';
     cardClass += currentViewMode === 'grid' ? ' grid-view' : '';
     cardClass += t.isUntimed ? ' untimed-task' : '';
-    cardClass += (t.state==='running'?' running':t.state==='paused'?' on-break':t.state==='done'?' done':'');
+    cardClass += (taskState==='running'?' running':taskState==='paused'?' on-break':taskState==='done'?' done':'');
     cardClass += (inTray?' in-tray':'');
     cardClass += (isOverrun?' break-overrun':'');
     
@@ -6143,13 +6544,53 @@ function renderFlowList() {
           <div class="timer-block">
             <div class="timer-digits">${digsText}</div>
             <div class="timer-label">${labelText}</div>
-            ${!t.isUntimed && t.state === 'running' && getEstimatedEndTime(t) ? `<div class="task-estimate">Done at <strong class="task-estimate-time">${getEstimatedEndTime(t)}</strong></div>` : ''}
+            ${!t.isUntimed && taskState === 'running' && getEstimatedEndTime(t, currentDateStr) ? `<div class="task-estimate">Done at <strong class="task-estimate-time">${getEstimatedEndTime(t, currentDateStr)}</strong></div>` : ''}
           </div>
         </div>
       </div>
-      ${!t.isUntimed ? `<div class="bar-outer"><div class="bar-track" style="position:relative;height:100%;overflow:hidden;">${buildBarHTML(t)}</div></div>` : ''}
+      ${!t.isUntimed ? `<div class="bar-outer"><div class="bar-track" style="position:relative;height:100%;overflow:hidden;">${buildBarHTML(t, currentDateStr)}</div></div>` : ''}
       <div class="controls"><span class="status-pill ${pillClass}">${pillText}</span>${ctrl}</div>`;
     list.appendChild(card);
+    
+    // Add progress bar hover tooltip
+    if (!t.isUntimed) {
+      const barOuter = card.querySelector('.bar-outer');
+      if (barOuter) {
+        const barTrack = barOuter.querySelector('.bar-track');
+        if (barTrack) {
+          barOuter.addEventListener('mouseenter', function(e) {
+            const worked = totalWorkedSecs(t, currentDateStr);
+            const total = t.allocSecs;
+            const percentage = total > 0 ? Math.round((worked / total) * 100) : 0;
+            
+            const tooltip = document.createElement('div');
+            tooltip.className = 'progress-tooltip';
+            tooltip.textContent = `${percentage}% • ${fmtF(worked)} / ${fmtF(total)}`;
+            tooltip.style.position = 'absolute';
+            tooltip.style.bottom = '100%';
+            tooltip.style.left = '50%';
+            tooltip.style.transform = 'translateX(-50%)';
+            tooltip.style.background = 'var(--surface2)';
+            tooltip.style.color = 'var(--active)';
+            tooltip.style.padding = '4px 8px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '11px';
+            tooltip.style.whiteSpace = 'nowrap';
+            tooltip.style.zIndex = '100';
+            tooltip.style.marginBottom = '4px';
+            tooltip.style.border = '1px solid var(--active)';
+            
+            barOuter.style.position = 'relative';
+            barOuter.appendChild(tooltip);
+          });
+          
+          barOuter.addEventListener('mouseleave', function() {
+            const tooltip = barOuter.querySelector('.progress-tooltip');
+            if (tooltip) tooltip.remove();
+          });
+        }
+      }
+    }
   });
   updateFlowStats();
   updateHoursTracker();
@@ -6164,6 +6605,7 @@ function renderFlowList() {
 function renderFlowInbox() {
   const inbox=document.getElementById('tmpwInbox');
   const items=document.getElementById('tmpwInboxItems');
+  if (!inbox || !items) return;
   if(pendingToFlow.length===0){inbox.classList.remove('visible');return;}
   inbox.classList.add('visible');
   items.innerHTML='';
@@ -7667,50 +8109,6 @@ function renderReportsPage() {
     
     html += `</div>
 
-      <!-- ═══ DAY GAPS & IDLE TIME ═══ -->
-      <div style="margin-bottom: 32px;">
-        <div style="font-size: 13px; font-weight: 600; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px;">⏳ Time Gaps & Idle Periods</div>`;
-    
-    const gaps = calculateTaskGaps();
-    if (gaps.length === 0) {
-      html += `<div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; text-align: center; color: var(--muted);">
-        <div style="font-size: 14px;">No gaps recorded yet. Click "START MY DAY" or set your usual start time to begin tracking.</div>
-      </div>`;
-    } else {
-      const totalIdleTime = gaps.reduce((a, g) => a + g.gapSecs, 0);
-      const effectiveStartTime = getEffectiveDayStartTime();
-      
-      html += `<div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
-        <div style="background: var(--surface2); padding: 14px 16px; border-bottom: 1px solid var(--border);">
-          ${(() => {
-            const source = getDayStartSource();
-            return `<div style="font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; margin-bottom: 8px;">Day started at ${new Date(effectiveStartTime).toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'})} <span style="color: ${source.color}; margin-left: 8px;">${source.label}</span></div>`;
-          })()}
-          <div style="font-size: 14px; font-weight: 700; color: var(--muted2);">Total idle time: <span style="color: var(--active);">${fmtDurF(totalIdleTime)}</span></div>
-        </div>`;
-      
-      gaps.forEach((gap, idx) => {
-        const startTime = new Date(gap.startTime).toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-        const endTime = new Date(gap.endTime).toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-        
-        html += `<div style="padding: 12px 16px; border-bottom: ${idx === gaps.length - 1 ? 'none' : '1px solid var(--border)'}; display: grid; grid-template-columns: 200px 1fr 120px 80px; gap: 12px; align-items: center; font-size: 11px;">
-          <div>
-            <div style="font-weight: 500; color: var(--text);">${gap.label}</div>
-            <div style="font-size: 9px; color: var(--muted); margin-top: 2px;">${startTime} → ${endTime}</div>
-          </div>
-          <div style="color: var(--muted2); line-height: 1.3;">
-            ${gap.type === 'day-to-first' ? `Started day · Waited before starting <strong>${gap.taskName}</strong>` : `Finished <strong>${gap.fromTask}</strong> · Paused before <strong>${gap.toTask}</strong>`}
-          </div>
-          <div style="text-align: right; font-weight: 600; color: var(--active);">${fmtDurF(gap.gapSecs)}</div>
-          <div style="text-align: right; color: var(--muted);">${Math.round((gap.gapSecs / totalIdleTime) * 100)}%</div>
-        </div>`;
-      });
-      
-      html += `</div>`;
-    }
-    
-    html += `</div>
-
       <!-- ═══ PRODUCTIVITY INSIGHTS ═══ -->
       <div style="margin-bottom: 32px;">
         <div style="font-size: 13px; font-weight: 600; color: var(--active); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px;">💡 Insights & Analysis</div>
@@ -8539,6 +8937,8 @@ async function loadFlowData() {
       });
       flowTasks = allTasks;  // Sync alias
       calendarTasks = allTasks;  // Sync alias
+      // Migrate any older multi-date calendar tasks into separate per-date tasks
+      splitMultiDateCalendarTasks();
     }
 
     if (window.api && window.api.getElapsedTime) {
@@ -8592,6 +8992,7 @@ function exportSingleFlowTask(id) {
   if (!t) return;
   const payload = { _schema: 'flow_tasks_v2', exportedAt: new Date().toISOString(), mode: 'single', tasks: [{ ...t }] };
   downloadJSON(payload, 'flow-task-' + t.name.toLowerCase().replace(/\s+/g,'-') + '.json');
+  closeDropdownAfterAction();
 }
 
 function downloadJSON(obj, filename) {
@@ -8781,6 +9182,7 @@ function openExtendModal(taskId) {
   document.getElementById('extendConfirmBtn').disabled = true;
   
   updateExtendPreview();
+  closeDropdownAfterAction();
   document.getElementById('extendTimeModal').classList.add('open');
   setTimeout(() => document.getElementById('extendTimeInput').focus(), 60);
 }
@@ -8899,6 +9301,7 @@ function openMergeModal(taskId) {
     mergeTaskList.appendChild(item);
   });
   
+  closeDropdownAfterAction();
   document.getElementById('mergeTasksModal').classList.add('open');
 }
 
@@ -9068,6 +9471,7 @@ function unmergeTask(taskId) {
   renderFlowList();
   renderCalendarView();  // Update calendar too
   saveFlowData();
+  closeDropdownAfterAction();
   
   console.log(`✓ Unmerged: "${task1Info.name}" and "${task2Info.name}"`);
 }
@@ -9410,11 +9814,25 @@ function renderWeekView() {
 function renderDayView() {
   const container = document.getElementById('calendarMain');
   const dayTasks = getTasksForDate(calendarCurrentDate);
-  
+
+  // Calculate total scheduled work time for this day from calendar tasks
+  const totalDurationMinutes = dayTasks.reduce((sum, task) => {
+    const duration = Number(task.duration || 0);
+    const alloc = task.allocSecs ? Math.round(Number(task.allocSecs) / 60) : 0;
+    return sum + Math.max(duration, alloc);
+  }, 0);
+
+  const totalWorkingHours = Math.floor(totalDurationMinutes / 60);
+  const totalWorkingMins = totalDurationMinutes % 60;
+
   let html = `<div style="padding: 20px;">
     <h3 style="margin-top: 0; font-size: 16px; color: var(--text); margin-bottom: 16px;">
       ${weekDays[calendarCurrentDate.getDay()]}, ${monthNames[calendarCurrentDate.getMonth()]} ${calendarCurrentDate.getDate()}
     </h3>
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+      <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;">Total Scheduled Work Time</div>
+      <div style="font-size: 20px; font-weight: 600; color: var(--active);">${totalWorkingHours}h ${totalWorkingMins}m</div>
+    </div>
     <div style="display: flex; flex-direction: column; gap: 12px;">`;
   
   if (dayTasks.length === 0) {
@@ -9537,24 +9955,28 @@ function saveCalendarTask() {
     alert('Please enter task name and select at least one date');
     return;
   }
-  
-  const task = {
-    id: Date.now() + Math.random(),
-    name,
-    scheduledDate: selectedDates[0],
-    scheduledDates: selectedDates,
-    hour,
-    duration,  // Keep for calendar display
-    allocSecs: duration * 60,  // ===== Convert to seconds for timer =====
-    notes,
-    createdAt: Date.now(),
-    completed: false,
-    state: 'idle',  // Default state for timer
-    segments: [],  // For timer tracking
-    splits: []  // For split timing
-  };
-  
-  allTasks.push(task);  // ===== Add to unified allTasks =====
+  // If multiple dates selected, create a separate task for each date
+  const tasksToAdd = [];
+  selectedDates.forEach(d => {
+    tasksToAdd.push({
+      id: Date.now() + Math.random(),
+      name,
+      scheduledDate: d,
+      scheduledDates: [d],
+      hour,
+      duration,
+      allocSecs: duration * 60,
+      notes,
+      createdAt: Date.now(),
+      completed: false,
+      state: 'idle',
+      segments: [],
+      splits: []
+    });
+  });
+
+  // Add all new tasks to unified store
+  tasksToAdd.forEach(t => allTasks.push(t));
   flowTasks = allTasks;  // Sync
   calendarTasks = allTasks;  // Sync
   saveFlowData();  // Save unified data
@@ -9563,6 +9985,35 @@ function saveCalendarTask() {
   renderFlowList();  // Update timer too
   renderTodaysTasks();
   alert(`Task "${name}" added to calendar for ${selectedDates.length} date${selectedDates.length === 1 ? '' : 's'}!`);
+}
+
+// Split any existing tasks that have multiple scheduledDates into separate per-date tasks
+function splitMultiDateCalendarTasks() {
+  const newTasks = [];
+  let changed = false;
+  allTasks.forEach(t => {
+    if (Array.isArray(t.scheduledDates) && t.scheduledDates.length > 1) {
+      changed = true;
+      t.scheduledDates.forEach(d => {
+        const nt = { ...t };
+        nt.id = Date.now() + Math.random();
+        nt.scheduledDate = d;
+        nt.scheduledDates = [d];
+        // Reset per-date runtime segments/state so dates are independent
+        nt.segments = [];
+        nt.state = nt.state || 'idle';
+        newTasks.push(nt);
+      });
+    } else {
+      newTasks.push(t);
+    }
+  });
+  if (changed) {
+    allTasks = newTasks;
+    flowTasks = allTasks;
+    calendarTasks = allTasks;
+    saveFlowData();
+  }
 }
 
 // Email Tasks Functions
@@ -9946,6 +10397,10 @@ async function confirmSync() {
     hideSyncLoadingAnimation();
     showSyncStatus('✓ Synced all tasks! ID: ' + syncSettings.syncId, 'success');
     
+    // Ensure button is re-enabled
+    btn.disabled = false;
+    btn.textContent = '☁ Sync now';
+    
     setTimeout(() => {
       closeSyncModal();
     }, 1500);
@@ -9955,8 +10410,15 @@ async function confirmSync() {
     restoreSyncContent();
     showSyncStatus('Error syncing tasks: ' + err.message, 'error');
     
+    // Ensure button is always re-enabled on error
     btn.disabled = false;
     btn.textContent = '☁ Sync now';
+    
+    // Force enable the button to prevent stuck state
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = '☁ Sync now';
+    }, 100);
   }
 }
 
