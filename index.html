@@ -2814,21 +2814,15 @@ body.text-mode .btn .btn-text {
 
 <!-- ══ WELCOME MODAL (First-time users) ══ -->
 <div class="modal-bg" id="welcomeModal" style="z-index: 10000;">
-  <div class="modal" style="max-width: 420px;">
+  <div class="modal" style="max-width: 380px;">
     <h2>Welcome to Tempow!</h2>
-    <p style="color: var(--muted2); font-size: 13px; margin-bottom: 20px; line-height: 1.6;">
-      You're part of the first group of users getting Tempow free forever.
-      Soon Tempow will move to a $5/year plan, but if you start now, you'll keep this account free forever.
-    </p>
-    <p style="color: var(--muted2); font-size: 13px; margin-bottom: 20px; line-height: 1.6;">
-      Enter your name to claim this early access and begin using the timer today.
-    </p>
+    <p style="color: var(--muted2); font-size: 13px; margin-bottom: 20px; line-height: 1.6;">Your personal task timer & scheduling assistant. Let's get started!</p>
     <div class="field">
       <label>What's your name?</label>
       <input type="text" id="userName" placeholder="Your name" style="font-size: 14px;" />
     </div>
     <div class="modal-actions">
-      <button class="btn-confirm" onclick="saveUserName()" style="flex: 1;">Claim early access</button>
+      <button class="btn-confirm" onclick="saveUserName()" style="flex: 1;">Get started</button>
     </div>
   </div>
 </div>
@@ -4333,6 +4327,10 @@ let flowTasks = [];  // Deprecated alias - automatically synced with allTasks
 let calendarTasks = [];  // Deprecated alias - automatically synced with allTasks
 let discardedTasks = [];
 let trashedTasks = [];
+// ===== SAFE PERSISTENCE FLAGS =====
+// Prevents the auto-save timer from overwriting valid data with empty arrays on startup
+let hasSuccessfullyLoaded = false;  // Set to true only after successful data load
+let hasManualTaskChange = false;   // Set when the user makes a manual task change before a successful load
 let dayStartTime = null; // Timestamp when user clicks "START MY DAY"
 let usualStartTime = null; // Usual start time (h, m) as fallback for auto-calculation
 let globalTick = null;
@@ -4431,6 +4429,10 @@ function loadDayStartTime() {
 function updateDayStartUI() {
   const btn = document.getElementById('dayStartBtn');
   const indicator = document.getElementById('dayStartedIndicator');
+  if (!btn || !indicator) {
+    console.warn('updateDayStartUI: Missing day start UI elements; skipping DOM update.');
+    return;
+  }
   
   if (dayStartTime) {
     btn.textContent = '⏹ RESET DAY';
@@ -4718,6 +4720,8 @@ function discardTask(id) {
   calendarTasks = allTasks;  // Sync
   tray = tray.filter(x => x.id !== id);
   
+  hasManualTaskChange = true;
+  saveFlowData();
   renderFlowList();
   renderCalendarView();  // Update calendar too
   updateHoursTracker();
@@ -4736,6 +4740,8 @@ function restoreTask(id) {
   calendarTasks = allTasks;  // Sync
   discardedTasks = discardedTasks.filter(x => x.id !== id);
   
+  hasManualTaskChange = true;
+  saveFlowData();
   renderFlowList();
   renderCalendarView();  // Update calendar too
   updateHoursTracker();
@@ -4876,7 +4882,6 @@ function saveUserName() {
     return;
   }
   localStorage.setItem('tempow_user_name', userName);
-  localStorage.setItem('tempow_welcome_shown', 'true');
   document.getElementById('welcomeModal').classList.remove('open');
   displayUserName();
 }
@@ -4890,8 +4895,8 @@ function displayUserName() {
 }
 
 function checkFirstVisit() {
-  const hasSeenWelcome = localStorage.getItem('tempow_welcome_shown');
-  if (!hasSeenWelcome) {
+  const hasVisited = localStorage.getItem('tempow_user_name');
+  if (!hasVisited) {
     const modal = document.getElementById('welcomeModal');
     if (modal) {
       modal.classList.add('open');
@@ -5020,6 +5025,7 @@ function addFlowTask() {
     allTasks.push(taskObj);
     flowTasks = allTasks;  // Sync
     calendarTasks = allTasks;  // Sync
+    hasManualTaskChange = true;
     saveFlowData();
     alert(`Task "${name}" scheduled to calendar on ${new Date(scheduleDate).toLocaleDateString()} at ${String(parseInt(scheduleHour)).padStart(2, '0')}:00`);
     closeModal();
@@ -5031,6 +5037,8 @@ function addFlowTask() {
   allTasks.push(taskObj);
   flowTasks = allTasks;  // Sync
   calendarTasks = allTasks;  // Sync
+  hasManualTaskChange = true;
+  saveFlowData();
   closeModal();
   renderFlowList();
   renderCalendarView();  // Update calendar too
@@ -5950,10 +5958,15 @@ function deleteFlowTask(id) {
     deletedAt: Date.now()
   });
   
-  // Remove from active tasks
+  // ===== UNIFIED ARRAY SYNC: Update BOTH flowTasks and allTasks =====
+  // CRITICAL: Since saveFlowData() saves allTasks, we MUST update it here
+  // Otherwise, deletions are lost on page refresh
   flowTasks = flowTasks.filter(x => x.id !== id);
+  allTasks = allTasks.filter(x => x.id !== id);  // Sync unified task list
+  calendarTasks = allTasks;  // Ensure calendar stays in sync
   tray = tray.filter(x => x.id !== id);
   
+  hasManualTaskChange = true;
   saveFlowData();
   renderTray();
   renderFlowList();
@@ -5972,6 +5985,7 @@ function restoreFromTrash(id) {
   
   trashedTasks = trashedTasks.filter(x => x.id !== id);
   
+  hasManualTaskChange = true;
   saveFlowData();
   renderFlowList();
   renderCalendarView();  // Update calendar too
@@ -6630,6 +6644,7 @@ function acceptToFlow(id) {
   flowTasks = allTasks;  // Sync
   calendarTasks = allTasks;  // Sync
   pendingToFlow=pendingToFlow.filter(x=>x.id!==id);
+  hasManualTaskChange = true;
   saveFlowData();
   renderFlowList(); renderFlowInbox();
 }
@@ -8796,6 +8811,12 @@ function exportDetailedReport() {
 const FLOW_KEY  = 'flow_tasks_v2';
 
 function saveFlowData() {
+  // ===== SAFE PERSISTENCE: Only save if data has been successfully loaded or the user made a manual change =====
+  if (!hasSuccessfullyLoaded && !hasManualTaskChange) {
+    console.warn('Safe Persistence: Skipping save - no successful data load and no manual changes yet.');
+    return;
+  }
+  
   try {
     const dataToSave = {
       tasks: allTasks,  // ===== Use unified allTasks =====
@@ -8811,18 +8832,41 @@ function saveFlowData() {
     
     // Try to save to file (Electron)
     if (window.api && window.api.saveTasks) {
-      window.api.saveTasks(dataToSave).catch(() => {
+      window.api.saveTasks(dataToSave).catch((err) => {
         // Fallback to localStorage if file save fails
-        localStorage.setItem(FLOW_KEY, JSON.stringify(dataToSave));
+        try {
+          localStorage.setItem(FLOW_KEY, JSON.stringify(dataToSave));
+        } catch (storageErr) {
+          if (storageErr.name === 'QuotaExceededError') {
+            console.error('Storage quota exceeded. Cannot save data.', storageErr);
+            alert('Storage full! Local storage quota exceeded. Please clear some space.');
+          } else {
+            console.error('Save Error (file fallback):', storageErr);
+          }
+        }
       });
     } else {
       // Fallback to localStorage
-      localStorage.setItem(FLOW_KEY, JSON.stringify(dataToSave));
+      try {
+        localStorage.setItem(FLOW_KEY, JSON.stringify(dataToSave));
+      } catch (storageErr) {
+        if (storageErr.name === 'QuotaExceededError') {
+          console.error('Storage quota exceeded. Cannot save data.', storageErr);
+          alert('Storage full! Local storage quota exceeded. Please clear some space.');
+        } else {
+          console.error('Save Error:', storageErr);
+        }
+      }
     }
     
     flashSaveIndicator('flowSaveIndicator');
     updateFlowLastSaved();
-  } catch(e) {}
+  } catch(e) {
+    console.error('Save Error (JSON.stringify):', e);
+    if (e instanceof TypeError) {
+      console.error('Possible circular reference or non-serializable object in tasks:', e.message);
+    }
+  }
 }
 
 async function syncElapsedTime(overrideElapsedSeconds) {
@@ -8867,23 +8911,56 @@ async function loadFlowData() {
     
     // Try to load from file (Electron)
     if (window.api && window.api.loadTasks) {
-      const result = await window.api.loadTasks();
-      if (result.success && result.tasks && result.tasks.length > 0) {
-        data = result.tasks;
+      try {
+        const result = await window.api.loadTasks();
+        if (result.success && result.tasks && result.tasks.length > 0) {
+          data = result.tasks;
+        }
+      } catch (fileErr) {
+        console.error('Error loading from Electron API:', fileErr);
+        // Continue to localStorage fallback
       }
     }
     
     // Fallback to localStorage
     if (!data) {
       const raw = localStorage.getItem(FLOW_KEY);
-      if (!raw) return;
-      data = JSON.parse(raw);
+      if (!raw) {
+        console.log('No saved data found. Starting with empty tasks.');
+        return;
+      }
+      
+      try {
+        data = JSON.parse(raw);
+      } catch (parseErr) {
+        console.error('JSON parse error in localStorage data:', parseErr);
+        console.warn('Could not parse saved data. Preventing overwrite until the user makes an explicit change.');
+        return;
+      }
     }
     
-    // If data is an array (from file), wrap it properly
+    // ===== DATA MIGRATION: Handle different data formats =====
+    // If data is an array (old format from file), wrap it properly
     if (Array.isArray(data)) {
+      console.log('Migrating from old data format (array) to new format (object)');
       const tasks = data;
-      data = { tasks, discardedTasks: [], savedAt: new Date().toISOString() };
+      data = { tasks, discardedTasks: [], trashedTasks: [], savedAt: new Date().toISOString() };
+    }
+    
+    // If older data shape used a different root key, try to migrate it safely
+    if (!data.tasks) {
+      if (Array.isArray(data.flowTasks)) {
+        data.tasks = data.flowTasks;
+      } else if (Array.isArray(data.allTasks)) {
+        data.tasks = data.allTasks;
+      } else if (Array.isArray(data.calendarTasks)) {
+        data.tasks = data.calendarTasks;
+      }
+    }
+
+    if (!data.tasks) {
+      console.warn('Loaded data missing tasks property. Possible data corruption or unsupported version. Preventing overwrite until manual change.');
+      return;
     }
     
     // Load work hours
@@ -8923,8 +9000,10 @@ async function loadFlowData() {
       if (dateInput) dateInput.value = customDateFilter;
     }
     
+    // ===== LOAD TASKS WITH MIGRATION SUPPORT =====
     if (data.tasks && Array.isArray(data.tasks)) {
       allTasks = data.tasks.map(t => {  // ===== Load into unified allTasks =====
+        // Migrate from old segment format if needed
         if (!t.segments) {
           t.segments = [];
           if (t.workedSecs > 0) t.segments.push({type:'work',secs:t.workedSecs,startTs:null,endTs:null,note:'',breakLimitSecs:0});
@@ -8933,25 +9012,45 @@ async function loadFlowData() {
         }
         if (!t.dateAdded) t.dateAdded = Date.now();
         if (!t.splits) t.splits = []; // Initialize splits array for split timing feature
+        if (!t.id) {
+          console.warn('Task missing ID during load - generating new ID:', t);
+          t.id = 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
         return t;
       });
       flowTasks = allTasks;  // Sync alias
       calendarTasks = allTasks;  // Sync alias
       // Migrate any older multi-date calendar tasks into separate per-date tasks
-      splitMultiDateCalendarTasks();
+      if (typeof splitMultiDateCalendarTasks === 'function') {
+        splitMultiDateCalendarTasks();
+      }
+      console.log('Successfully loaded', allTasks.length, 'tasks');
+      hasSuccessfullyLoaded = true;
     }
 
     if (window.api && window.api.getElapsedTime) {
-      const timeResult = await window.api.getElapsedTime();
-      if (timeResult.success && timeResult.elapsedSeconds > 0) {
-        // App was closed; recalculate all segment times based on their saved startTs
-        await syncElapsedTime();
+      try {
+        const timeResult = await window.api.getElapsedTime();
+        if (timeResult.success && timeResult.elapsedSeconds > 0) {
+          // App was closed; recalculate all segment times based on their saved startTs
+          await syncElapsedTime();
+        }
+      } catch (timeErr) {
+        console.error('Error syncing elapsed time:', timeErr);
       }
     }
     
     updateFlowLastSaved(data.savedAt);
+    
+    // ===== MARK SUCCESSFUL LOAD - THIS UNLOCKS SAVING =====
+    hasSuccessfullyLoaded = true;
+    console.log('Safe Persistence: Data load complete. Auto-save is now enabled.');
+    
   } catch(e) {
-    console.error('Error loading flow data:', e);
+    console.error('Critical error loading flow data:', e);
+    console.error('Stack trace:', e.stack);
+    // Mark as loaded anyway to prevent the auto-save timer from wiping data
+    hasSuccessfullyLoaded = true;
   }
 }
 
@@ -9515,16 +9614,57 @@ function restoreCollapsibleStates() {
    INIT
 ═══════════════════════════════════════════ */
 (async function initApp() {
-  checkFirstVisit();
-  loadDayStartTime();
-  loadUsualStartTime();
-  await loadFlowData();
-  renderFlowList();
-  updateDateRangeButtons();
-  restoreCollapsibleStates();
-  loadMinimizedPanelState();
+  try {
+    checkFirstVisit();
+  } catch (e) {
+    console.error('Init error in checkFirstVisit:', e);
+  }
+
+  try {
+    loadDayStartTime();
+  } catch (e) {
+    console.error('Init error in loadDayStartTime:', e);
+  }
+
+  try {
+    loadUsualStartTime();
+  } catch (e) {
+    console.error('Init error in loadUsualStartTime:', e);
+  }
+
+  try {
+    await loadFlowData();  // This sets hasSuccessfullyLoaded = true after successful load
+  } catch (e) {
+    console.error('Init error in loadFlowData:', e);
+  }
+
+  try {
+    renderFlowList();
+  } catch (e) {
+    console.error('Init error in renderFlowList:', e);
+  }
+
+  try {
+    updateDateRangeButtons();
+  } catch (e) {
+    console.error('Init error in updateDateRangeButtons:', e);
+  }
+
+  try {
+    restoreCollapsibleStates();
+  } catch (e) {
+    console.error('Init error in restoreCollapsibleStates:', e);
+  }
+
+  try {
+    loadMinimizedPanelState();
+  } catch (e) {
+    console.error('Init error in loadMinimizedPanelState:', e);
+  }
   
   // Auto-save task data every 5 seconds
+  // ===== SAFE PERSISTENCE: Only saves if data has been successfully loaded =====
+  // This prevents the timer from overwriting valid data with empty arrays on startup
   setInterval(() => {
     saveFlowData();
   }, 5000);
