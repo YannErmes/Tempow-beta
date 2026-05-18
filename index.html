@@ -4054,7 +4054,7 @@ function updateBadges() {
 ═══════════════════════════════════════════ */
 // ===== UNIFIED TASK SYSTEM =====
 // Both timer and calendar use the SAME task list
-const CLOUD_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyIodvwYw27jnKP67dAPRAerVWM0pqlPvqF4Ww6jZcQAACewDxHJ9M1ZorJ159zF6oF/exec';
+const CLOUD_SYNC_URL = 'https://script.google.com/macros/s/AKfycbySuQ2HFd69V6oGBq8pCMbclTj1I5-rHVUmo9fjj_2MeyhYehq21Pj8Q4nrDW5GV6vY/exec';
 let allTasks = [];  // Single source of truth for all tasks
 let flowTasks = [];  // Deprecated alias - automatically synced with allTasks
 let calendarTasks = [];  // Deprecated alias - automatically synced with allTasks
@@ -9929,7 +9929,7 @@ async function sendWeeklySchedule(event) {
   }
   
   // Use default AppScript URL for all users
-  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbyIodvwYw27jnKP67dAPRAerVWM0pqlPvqF4Ww6jZcQAACewDxHJ9M1ZorJ159zF6oF/exec';
+  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbySuQ2HFd69V6oGBq8pCMbclTj1I5-rHVUmo9fjj_2MeyhYehq21Pj8Q4nrDW5GV6vY/exec';
   
   // Save email for future use
   localStorage.setItem('user_email', recipientEmail);
@@ -10025,7 +10025,7 @@ async function sendFeatureSuggestion(event) {
   const suggestionStatus = document.getElementById('suggestionStatus');
   const suggestionStatusText = document.getElementById('suggestionStatusText');
   const recipientEmail = 'aguiadahoyann@icloud.com';
-  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbyIodvwYw27jnKP67dAPRAerVWM0pqlPvqF4Ww6jZcQAACewDxHJ9M1ZorJ159zF6oF/exec';
+  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbySuQ2HFd69V6oGBq8pCMbclTj1I5-rHVUmo9fjj_2MeyhYehq21Pj8Q4nrDW5GV6vY/exec';
 
   if (!suggestionText) {
     alert('⚠️ Please enter your suggestion before submitting.');
