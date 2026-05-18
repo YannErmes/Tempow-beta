@@ -1797,8 +1797,8 @@ body.text-mode .btn .btn-text {
 .pill-idle    { background:var(--surface2); color:var(--muted); }
 
 /* Tempow modal */
-.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:999; align-items:center; justify-content:center; }
-.modal-bg.open { display:flex; }
+.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:999; align-items:center; justify-content:center; pointer-events:auto; }
+.modal-bg.open { display:flex; pointer-events:auto; }
 .modal { background:var(--surface); border:1px solid var(--border2); border-radius:14px; padding:28px; width:360px; max-height: 85vh; overflow-y: auto; }
 .modal h2 { font-family:var(--font-display); font-size:17px; font-weight:700; margin-bottom:20px; }
 .field { margin-bottom:16px; }
@@ -2963,8 +2963,8 @@ body.text-mode .btn .btn-text {
         <option value="restore">↓ Restore All Tasks</option>
         <option value="clear">✕ Clear All Tasks</option>
       </select>
-      <button class="btn-report" onclick="console.log('Backup clicked'); openSyncModal();" style="background: rgba(93,224,168,0.12); border-color: var(--active); color: var(--active);">☁ Back Up</button>
-      <button class="btn-report" onclick="console.log('Restore clicked'); openLoadFromCloudModal();" style="background: rgba(93,224,168,0.12); border-color: var(--active); color: var(--active);">↓ Restore</button>
+      <button type="button" class="btn-report" onclick="console.log('Backup clicked'); openSyncModal();" style="background: rgba(93,224,168,0.12); border-color: var(--active); color: var(--active);">☁ Back Up</button>
+      <button type="button" class="btn-report" onclick="console.log('Restore clicked'); openLoadFromCloudModal();" style="background: rgba(93,224,168,0.12); border-color: var(--active); color: var(--active);">↓ Restore</button>
       <span id="syncStatusInline" style="font-size:10px;color:var(--muted);"></span>
       <span class="save-indicator" id="flowSaveIndicator">✓ Saved</span>
       <span style="font-size:10px;color:var(--muted);" id="flowLastSaved"></span>
@@ -3323,8 +3323,43 @@ body.text-mode .btn .btn-text {
     </div>
 
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeEmailTasksModal()">Cancel</button>
-      <button class="btn-confirm" onclick="sendWeeklySchedule()">📧 Send Schedule</button>
+      <button type="button" class="btn-cancel" onclick="closeEmailTasksModal()">Cancel</button>
+      <button type="button" class="btn-confirm" onclick="sendWeeklySchedule(event)">📧 Send Schedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- Suggestion Modal -->
+<div class="modal-bg" id="suggestionModal">
+  <div class="modal" style="max-width: 520px;">
+    <h2>💡 Feature Suggestion</h2>
+    <p style="font-size: 11px; color: var(--muted); margin-bottom: 14px; line-height: 1.5;">
+      Submit your idea, improvement, or request directly to <strong>aguiadahoyann@icloud.com</strong>. Serious suggestions are more likely to receive free unlimited access forever, even after the fee increases to $15/year.
+    </p>
+
+    <div class="field">
+      <label>Your email (optional)</label>
+      <input type="email" id="suggestionSenderEmail" placeholder="you@example.com" />
+      <div style="font-size: 9px; color: var(--muted2); margin-top: 4px;">Optional — add your email if you want follow-up or a reply.</div>
+    </div>
+
+    <div class="field">
+      <label>Suggestion</label>
+      <textarea id="suggestionText" rows="5" placeholder="Describe your suggestion here..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>Why this would help</label>
+      <textarea id="suggestionDetails" rows="3" placeholder="Optional: share examples, use cases, or priority."></textarea>
+    </div>
+
+    <div id="suggestionStatus" style="background: var(--surface2); border-radius: 8px; padding: 12px; margin: 16px 0; font-size: 11px; color: var(--muted); display: none;">
+      <span id="suggestionStatusText"></span>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-cancel" onclick="closeSuggestionModal()">Cancel</button>
+      <button type="button" class="btn-confirm" onclick="sendFeatureSuggestion(event)">📨 Submit Suggestion</button>
     </div>
   </div>
 </div>
@@ -3333,320 +3368,18 @@ body.text-mode .btn .btn-text {
      PAGE 4 — HELP & GUIDES
 ══════════════════════════════════════════ -->
 <div class="page" id="page-help">
-  <div class="help-container">
+  <div class="help-container" style="padding: 40px;">
     <div class="help-header">
-      <h1>⚡ Tempow Help & User Guide</h1>
-      <p>Master task timing, planning, and cloud sync</p>
+      <h1>⚡ Help is under construction</h1>
+      <p>This section is being simplified. Use the feature suggestion button on the Reports page to send your idea.</p>
     </div>
-
-    <div class="help-search">
-      <input type="text" id="helpSearch" placeholder="Search guides..." onkeyup="filterHelpGuides()">
-    </div>
-
-    <div class="help-sections">
-      <!-- FLOW TAB GUIDE -->
-      <div class="help-section" data-section="flow">
-        <h2>⏱ Timer Tab — Task Management</h2>
-        
-        <div class="help-subsection">
-          <h3>Getting Started</h3>
-          <p>The Timer tab is where you manage your daily tasks with precise time allocation.</p>
-          
-          <!-- SCREENSHOT PLACEHOLDER: timer-overview -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: timer-overview.png - Main timer interface with task list and controls</div>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Creating a Task</h3>
-          <ol>
-            <li>Click the <strong>+ Add Task</strong> button in the toolbar</li>
-            <li>Enter task name (e.g., "Write project brief")</li>
-            <li>Choose task type:
-              <ul>
-                <li><strong>⏱ Timed</strong> - Tasks with a time limit (recommended)</li>
-                <li><strong>☐ Untimed</strong> - Checklist items without time tracking</li>
-              </ul>
-            </li>
-            <li>For timed tasks, set allocated time (max 4 hours)</li>
-            <li>Optional: Add break time (how long you can pause)</li>
-            <li>Click <strong>Create Task</strong></li>
-          </ol>
-
-          <!-- SCREENSHOT PLACEHOLDER: add-task-modal -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: add-task-modal.png - "New Task" modal showing name, type, and time inputs</div>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Task States & Controls</h3>
-          <p>Each task has 4 states with different controls:</p>
-          
-          <div class="help-table">
-            <div class="help-row">
-              <strong>Idle</strong> → <span class="muted">Task not started</span>
-              <div class="controls-list">▶ Start button</div>
-            </div>
-            <div class="help-row">
-              <strong>Running</strong> → <span class="muted">Timer is counting down</span>
-              <div class="controls-list">⏸ Pause | ✓ Done (early)</div>
-            </div>
-            <div class="help-row">
-              <strong>Paused</strong> → <span class="muted">On break or manually paused</span>
-              <div class="controls-list">▶ Resume | ⏱ Extend</div>
-            </div>
-            <div class="help-row">
-              <strong>Done</strong> → <span class="muted">Task completed</span>
-              <div class="controls-list">✓ Complete (view only)</div>
-            </div>
-          </div>
-
-          <!-- SCREENSHOT PLACEHOLDER: task-card-states -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: task-card-states.png - Show Running, Paused, and Done task cards</div>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Progress Bar & Timer Display</h3>
-          <p>Each task card shows:</p>
-          <ul>
-            <li><strong>Progress bar</strong> - Visual representation of time spent vs. allocated</li>
-            <li><strong>Timer digits</strong> - Time remaining (or time on break if paused)</li>
-            <li><strong>Status pill</strong> - Running/Break/Done/Idle indicator</li>
-            <li><strong>Estimated end time</strong> - When you'll finish at current pace (only when running)</li>
-          </ul>
-
-          <!-- SCREENSHOT PLACEHOLDER: task-progress-details -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: task-progress-details.png - Close-up of running task with timer, progress bar, and estimated time</div>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Task Actions</h3>
-          <p><strong>All buttons toggle between text and icons:</strong> Use ⚙ Settings to choose display mode</p>
-          
-          <ul>
-            <li><strong>⏱ Extend</strong> - Add up to 25% more time to a paused task</li>
-            <li><strong>🔀 Merge</strong> - Combine this task with another when priorities change</li>
-            <li><strong>⇄ Clock</strong> - Send task to 24h Clock for scheduling</li>
-            <li><strong>📝 Notes</strong> - Add quick reminders for tomorrow</li>
-            <li><strong>↓ JSON</strong> - Export task as backup</li>
-            <li><strong>⊘ Discard</strong> - Temporarily hide to focus on critical tasks</li>
-          </ul>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Filtering & View Modes</h3>
-          <p>Click the <strong>▼</strong> button to expand filters:</p>
-          <ul>
-            <li><strong>Filter by state:</strong> All, Running, Paused, Done, Idle, Timed, Untimed</li>
-            <li><strong>View modes:</strong> List (default), Grid, Card - Pick what works for you!</li>
-          </ul>
-
-          <!-- SCREENSHOT PLACEHOLDER: filter-bar-expanded -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: filter-bar-expanded.png - Expanded filter/view mode panel</div>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Discarded Tasks & Trash</h3>
-          <p><strong>Discard</strong> temporarily hides tasks (visible in Discarded section)</p>
-          <p><strong>Delete</strong> moves tasks to Trash (auto-purged after 24 hours)</p>
-          <p>You can <strong>Restore</strong> from either at any time</p>
-        </div>
-      </div>
-
-      <!-- CLOCK TAB GUIDE -->
-      <div class="help-section" data-section="clock">
-        <h2>◕ 24h Clock — Timeline Planning</h2>
-        
-        <div class="help-subsection">
-          <h3>What is the 24h Clock?</h3>
-          <p>A visual timeline of your entire day (24 hours). Plan when you'll work on tasks, when you'll take breaks, and optimize your schedule.</p>
-
-          <!-- SCREENSHOT PLACEHOLDER: clock-overview -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: clock-overview.png - Full 24h clock view with example tasks</div>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Adding & Scheduling Tasks</h3>
-          <ol>
-            <li>Click <strong>+ Add Task</strong> in the Clock tab</li>
-            <li>Fill in task details (name, duration, optional break time, color)</li>
-            <li>On the 24h clock, select a time window where you want to work on it</li>
-            <li>The system will show you how much time is available in that slot</li>
-            <li>Click <strong>Add Task</strong> to schedule it</li>
-          </ol>
-
-          <!-- SCREENSHOT PLACEHOLDER: clock-add-task -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: clock-add-task.png - Add Task modal and clock selection interface</div>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Color Coding</h3>
-          <p>Tasks have different colors for easy visual separation. Click <strong>Random</strong> to auto-assign, or manually pick colors that match your priorities.</p>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Sending to Timer Tab</h3>
-          <p>Once you've scheduled tasks on the clock:</p>
-          <ol>
-            <li>Start your day (click <strong>START MY DAY</strong>)</li>
-            <li>The system automatically creates a task in the Timer tab</li>
-            <li>Begin working with full time tracking</li>
-          </ol>
-
-          <!-- SCREENSHOT PLACEHOLDER: inbox-preview -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: inbox-preview.png - Timer tab showing incoming tasks from clock with preview</div>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Importing & Exporting Schedules</h3>
-          <p><strong>Import CSV:</strong> Bulk-load tasks from a spreadsheet</p>
-          <p><strong>Export CSV:</strong> Save your schedule for backup or sharing</p>
-          <p><strong>Save Session:</strong> Store your current plan for tomorrow</p>
-        </div>
-      </div>
-
-      <!-- CLOUD SYNC GUIDE -->
-      <div class="help-section" data-section="sync">
-        <h2>☁ Cloud Sync — Backup & Restore</h2>
-        
-        <div class="help-subsection">
-          <h3>Why Back up?</h3>
-          <p>Backup all your tasks to Google Sheets and access them from any device. Your data is secure and always recoverable.</p>
-        </div>
-
-        <div class="help-subsection">
-          <h3>First-Time Sync Setup</h3>
-          <ol>
-            <li>Go to <strong>Data</strong> section and click <strong>☁ Back up</strong></li>
-            <li>Enter your email address (your unique identifier)</li>
-            <li>Enter a username (alphanumeric, no spaces)</li>
-            <li>Click <strong>☁ Sync now</strong></li>
-            <li>Watch the 2D animation while your tasks upload 🌀</li>
-            <li>You'll get a unique <strong>Sync ID</strong> - save this!</li>
-          </ol>
-
-          <!-- SCREENSHOT PLACEHOLDER: sync-modal -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: sync-modal.png - Sync to Cloud modal with email/username fields</div>
-
-          <!-- SCREENSHOT PLACEHOLDER: sync-animation -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: sync-animation.png - 2D orbital loading animation during sync</div>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Loading from Cloud</h3>
-          <ol>
-            <li>Click <strong>☁ Restore</strong> in the Data section</li>
-            <li>Enter the <strong>same email and username</strong> you used to sync</li>
-            <li>Click the button to fetch your tasks</li>
-            <li>You'll see a preview of how many tasks are ready to load</li>
-            <li>Click <strong>Confirm load</strong> to restore them</li>
-          </ol>
-
-          <!-- SCREENSHOT PLACEHOLDER: load-modal-preview -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: load-modal-preview.png - Load from Cloud showing preview of tasks to restore</div>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Pro Tips</h3>
-          <ul>
-            <li>💾 Sync regularly to keep backups fresh</li>
-            <li>⚠️ Loading will <strong>replace</strong> your current tasks, not merge them</li>
-            <li>🌍 Works offline - syncs when you reconnect</li>
-            <li>🔐 Your email+username combination is encrypted</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- DATA & EXPORT GUIDE -->
-      <div class="help-section" data-section="data">
-        <h2>📥 Data Management</h2>
-        
-        <div class="help-subsection">
-          <h3>Exporting Tasks</h3>
-          <ul>
-            <li><strong>↓ All tasks JSON</strong> - Download your entire task database</li>
-            <li><strong>↓ Completed only</strong> - Export just finished tasks for record-keeping</li>
-            <li><strong>↓ JSON per task</strong> - Right-click > JSON to export single task</li>
-          </ul>
-          <p>Great for backups, sharing, or importing into other tools!</p>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Importing Tasks</h3>
-          <ol>
-            <li>Click <strong>↑ Import JSON</strong></li>
-            <li>Drag & drop your JSON file or click to browse</li>
-            <li>Preview the tasks to be imported</li>
-            <li>Click <strong>Import</strong> to add them</li>
-          </ol>
-
-          <!-- SCREENSHOT PLACEHOLDER: import-modal -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: import-modal.png - Import JSON modal with drag-drop zone</div>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Sync Elapsed Time</h3>
-          <p>If the app crashes or closes:</p>
-          <ul>
-            <li>Click <strong>↻ Sync elapsed</strong> to automatically add lost time to running tasks</li>
-            <li>The system calculates time passed since your last activity</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- SETTINGS GUIDE -->
-      <div class="help-section" data-section="settings">
-        <h2>⚙ Display Settings</h2>
-        
-        <div class="help-subsection">
-          <h3>Button Display Modes</h3>
-          <p>Click the <strong>⚙ Settings</strong> button (top right) to toggle:</p>
-          <ul>
-            <li><strong>📋 Text + Icons</strong> (default) - Full button labels for clarity</li>
-            <li><strong>📦 Icons Only</strong> - Compact view, shows only icons with tooltips</li>
-          </ul>
-          <p>Your choice saves automatically and applies everywhere!</p>
-
-          <!-- SCREENSHOT PLACEHOLDER: settings-modal -->
-          <div class="screenshot-placeholder">📸 SCREENSHOT: settings-modal.png - Settings modal showing button mode toggle</div>
-        </div>
-      </div>
-
-      <!-- TIPS & TRICKS -->
-      <div class="help-section" data-section="tips">
-        <h2>✨ Tips & Tricks</h2>
-        
-        <div class="help-subsection">
-          <h3>Productivity Hacks</h3>
-          <ul>
-            <li>📌 <strong>Use the Clock tab first</strong> - Plan your day, then execute in Timer</li>
-            <li>⏸ <strong>Pause for breathing</strong> - Use break time to prevent burnout</li>
-            <li>🔄 <strong>Merge tasks strategically</strong> - Combine related work to maintain flow</li>
-            <li>📝 <strong>Add tomorrow's notes</strong> - Prep context for the next day</li>
-            <li>☁ <strong>Sync before bed</strong> - Always have a backup of today's work</li>
-            <li>📊 <strong>Check Reports weekly</strong> - See patterns in your productivity</li>
-          </ul>
-        </div>
-
-        <div class="help-subsection">
-          <h3>Common Issues</h3>
-          <p><strong>Q: Timer jumped ahead after closing the app</strong></p>
-          <p>A: Click <strong>↻ Sync elapsed</strong> to account for missed time automatically</p>
-
-          <p><strong>Q: I can't find a task I discarded</strong></p>
-          <p>A: Scroll to the <strong>Discarded Tasks</strong> section at the bottom of Timer tab</p>
-
-          <p><strong>Q: Cloud sync says "Not found"</strong></p>
-          <p>A: Double-check your email and username match exactly what you used during first sync</p>
-
-          <p><strong>Q: How long do tasks stay in Trash?</strong></p>
-          <p>A: 24 hours. After that, they're permanently deleted. Restore them anytime before that!</p>
-        </div>
-      </div>
-
-      <!-- KEYBOARD SHORTCUTS -->
-      <div class="help-section" data-section="shortcuts">
-        <h2>⌨️ Keyboard Shortcuts (Coming Soon)</h2>
-        <p>Shortcuts for power users will be added in the next update. For now, use the button interface!</p>
-      </div>
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; max-width: 720px; margin-top: 24px;">
+      <p style="font-size: 13px; color: var(--muted); line-height: 1.7;">
+        The full help guide is not finished yet. If you have a serious or good-minded suggestion, send it from the Reports page and it will be delivered to <strong>aguiadahoyann@icloud.com</strong>.
+      </p>
+      <p style="font-size: 12px; color: var(--muted2); margin-top: 12px;">
+        Your suggestion can include an optional email so the team can follow up. Good ideas may qualify for free unlimited access forever, even after the fee rises to $15/year.
+      </p>
     </div>
   </div>
 </div>
@@ -3969,8 +3702,8 @@ body.text-mode .btn .btn-text {
     </div>
 
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeSyncModal()">Cancel</button>
-      <button class="btn-confirm" id="syncConfirmBtn" onclick="confirmSync()">☁ Sync now</button>
+      <button type="button" class="btn-cancel" onclick="closeSyncModal()">Cancel</button>
+      <button type="button" class="btn-confirm" id="syncConfirmBtn" onclick="confirmSync()">☁ Sync now</button>
     </div>
   </div>
 </div>
@@ -4321,7 +4054,7 @@ function updateBadges() {
 ═══════════════════════════════════════════ */
 // ===== UNIFIED TASK SYSTEM =====
 // Both timer and calendar use the SAME task list
-const CLOUD_SYNC_URL = 'https://script.google.com/macros/s/AKfycbzLcQR_2NzymcvfFYGM_bX4hdNieG4VnAz4PcbwahkeUAVMFoAhvP85LBV9pQUHzoUp/exec';
+const CLOUD_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyIodvwYw27jnKP67dAPRAerVWM0pqlPvqF4Ww6jZcQAACewDxHJ9M1ZorJ159zF6oF/exec';
 let allTasks = [];  // Single source of truth for all tasks
 let flowTasks = [];  // Deprecated alias - automatically synced with allTasks
 let calendarTasks = [];  // Deprecated alias - automatically synced with allTasks
@@ -8225,7 +7958,8 @@ function renderReportsPage() {
       </div>`;
   }
   
-  html += `</div>`;
+  html += `</div>
+    <button type="button" class="btn btn-report" onclick="openSuggestionModal()" style="position: fixed; bottom: 22px; right: 22px; z-index: 9990; box-shadow: 0 16px 30px rgba(0,0,0,0.18);">💡 Send Feature Suggestion</button>`;
   page.innerHTML = html;
   
   // Store performance data globally for manual generation
@@ -8322,7 +8056,8 @@ function exportReportCSV() {
 
 function getCloudSyncSettings() {
   try {
-    return JSON.parse(localStorage.getItem('cloudSyncSettings') || '{}');
+    const parsed = JSON.parse(localStorage.getItem('cloudSyncSettings') || '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
   } catch (err) {
     return {};
   }
@@ -8347,7 +8082,7 @@ function getCloudSyncUrl() {
 
 function saveCloudSyncUrl(url) {
   const settings = getCloudSyncSettings();
-  settings.cloudSyncUrl = url ? url.trim() : '';
+  settings.cloudSyncUrl = url ? String(url).trim() : '';
   localStorage.setItem('cloudSyncSettings', JSON.stringify(settings));
 }
 
@@ -10182,7 +9917,7 @@ function loadAppScriptUrlFromStorage() {
   // The default URL is hardcoded in sendWeeklySchedule()
 }
 
-async function sendWeeklySchedule() {
+async function sendWeeklySchedule(event) {
   const recipientEmail = document.getElementById('emailTasksRecipient').value.trim();
   const includeNotes = document.getElementById('emailIncludeNotes').checked;
   const includeDuration = document.getElementById('emailIncludeDuration').checked;
@@ -10194,7 +9929,7 @@ async function sendWeeklySchedule() {
   }
   
   // Use default AppScript URL for all users
-  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbzLcQR_2NzymcvfFYGM_bX4hdNieG4VnAz4PcbwahkeUAVMFoAhvP85LBV9pQUHzoUp/exec';
+  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbyIodvwYw27jnKP67dAPRAerVWM0pqlPvqF4Ww6jZcQAACewDxHJ9M1ZorJ159zF6oF/exec';
   
   // Save email for future use
   localStorage.setItem('user_email', recipientEmail);
@@ -10260,6 +9995,97 @@ async function sendWeeklySchedule() {
   } finally {
     sendBtn.textContent = originalText;
     sendBtn.disabled = false;
+  }
+}
+
+function openSuggestionModal() {
+  const modal = document.getElementById('suggestionModal');
+  if (!modal) return;
+  modal.classList.add('open');
+  const senderEmail = localStorage.getItem('user_email') || '';
+  const emailInput = document.getElementById('suggestionSenderEmail');
+  const suggestionInput = document.getElementById('suggestionText');
+  const detailsInput = document.getElementById('suggestionDetails');
+  const statusDiv = document.getElementById('suggestionStatus');
+  if (emailInput) emailInput.value = senderEmail;
+  if (suggestionInput) suggestionInput.value = '';
+  if (detailsInput) detailsInput.value = '';
+  if (statusDiv) statusDiv.style.display = 'none';
+}
+
+function closeSuggestionModal() {
+  const modal = document.getElementById('suggestionModal');
+  if (modal) modal.classList.remove('open');
+}
+
+async function sendFeatureSuggestion(event) {
+  const suggestionText = document.getElementById('suggestionText').value.trim();
+  const suggestionDetails = document.getElementById('suggestionDetails').value.trim();
+  const senderEmail = document.getElementById('suggestionSenderEmail').value.trim();
+  const suggestionStatus = document.getElementById('suggestionStatus');
+  const suggestionStatusText = document.getElementById('suggestionStatusText');
+  const recipientEmail = 'aguiadahoyann@icloud.com';
+  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbyIodvwYw27jnKP67dAPRAerVWM0pqlPvqF4Ww6jZcQAACewDxHJ9M1ZorJ159zF6oF/exec';
+
+  if (!suggestionText) {
+    alert('⚠️ Please enter your suggestion before submitting.');
+    return;
+  }
+
+  if (senderEmail && !senderEmail.includes('@')) {
+    alert('⚠️ Please enter a valid email address, or leave it blank.');
+    return;
+  }
+
+  const sendBtn = event && event.target ? event.target : document.querySelector('#suggestionModal .btn-confirm');
+  const originalText = sendBtn ? sendBtn.textContent : '📨 Submit Suggestion';
+  if (sendBtn) {
+    sendBtn.textContent = '⟳ Sending...';
+    sendBtn.disabled = true;
+  }
+
+  if (senderEmail) {
+    localStorage.setItem('user_email', senderEmail);
+  }
+
+  if (suggestionStatus) {
+    suggestionStatus.style.display = 'block';
+    suggestionStatusText.textContent = 'Sending your suggestion...';
+  }
+
+  try {
+    const response = await fetch(appscriptUrl, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'sendFeatureSuggestion',
+        recipientEmail,
+        subject: senderEmail ? `Feature suggestion from ${senderEmail}` : 'Feature suggestion from app user',
+        senderEmail: senderEmail || 'anonymous',
+        suggestionText,
+        suggestionDetails,
+        timestamp: new Date().toISOString(),
+        note: 'Feature suggestion submitted from the app'
+      })
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      if (suggestionStatusText) suggestionStatusText.textContent = '✓ Suggestion sent successfully. Thank you!';
+      alert('✓ Your feature suggestion was submitted. Thank you for helping improve the app.');
+      closeSuggestionModal();
+    } else {
+      if (suggestionStatusText) suggestionStatusText.textContent = '⚠️ Failed to send suggestion. Please try again.';
+      alert(`⚠️ Error: ${result.error || 'Failed to send suggestion'}`);
+    }
+  } catch (err) {
+    console.error('Error sending suggestion:', err);
+    if (suggestionStatusText) suggestionStatusText.textContent = '⚠️ Error sending suggestion. Check console for details.';
+    alert('⚠️ Error sending suggestion. Check console for details.');
+  } finally {
+    if (sendBtn) {
+      sendBtn.textContent = originalText;
+      sendBtn.disabled = false;
+    }
   }
 }
 
@@ -10423,41 +10249,46 @@ function simpleHash(str) {
 }
 
 function generateSyncId(email, username) {
-  const emailHash = simpleHash(email.toLowerCase());
-  const usernameHash = simpleHash(username.toLowerCase());
+  const safeEmail = String(email || '').toLowerCase();
+  const safeUsername = String(username || '').toLowerCase();
+  const emailHash = simpleHash(safeEmail);
+  const usernameHash = simpleHash(safeUsername);
   return `${emailHash}_${usernameHash}`;
 }
 
 function openSyncModal() {
   const modal = document.getElementById('syncModal');
+  if (!modal) return;
   
-  // Reset to show content, hide loading animation
-  document.getElementById('syncContent').style.display = 'block';
-  document.getElementById('syncLoadingContainer').classList.remove('active');
-  document.getElementById('syncExistingInfo').style.display = 'none';
-  
+  const syncContent = document.getElementById('syncContent');
+  const syncLoadingContainer = document.getElementById('syncLoadingContainer');
+  const syncExistingInfo = document.getElementById('syncExistingInfo');
   const btn = document.getElementById('syncConfirmBtn');
-  btn.textContent = '☁ Sync now';
-  btn.disabled = false;
   const modalStatus = modal.querySelector('#syncStatus');
-  if (modalStatus) {
-    modalStatus.style.display = 'none';
+  
+  if (syncContent) syncContent.style.display = 'block';
+  if (syncLoadingContainer) syncLoadingContainer.classList.remove('active');
+  if (syncExistingInfo) syncExistingInfo.style.display = 'none';
+  if (modalStatus) modalStatus.style.display = 'none';
+  if (btn) {
+    btn.textContent = '☁ Sync now';
+    btn.disabled = false;
   }
   
   // Load saved settings if they exist
-  const savedSettings = localStorage.getItem('cloudSyncSettings');
-  if (savedSettings) {
-    const settings = JSON.parse(savedSettings);
-    document.getElementById('syncEmail').value = settings.email || '';
-    document.getElementById('syncUsername').value = settings.username || '';
-    document.getElementById('syncUrlInput').value = settings.cloudSyncUrl || '';
+  const savedSettings = getCloudSyncSettings();
+  if (savedSettings && Object.keys(savedSettings).length > 0) {
+    document.getElementById('syncEmail').value = String(savedSettings.email || '');
+    document.getElementById('syncUsername').value = String(savedSettings.username || '');
+    document.getElementById('syncUrlInput').value = String(savedSettings.cloudSyncUrl || '');
     
-    // Show existing sync info
-    const syncId = generateSyncId(settings.email, settings.username);
-    const lastSync = settings.lastSync ? new Date(settings.lastSync).toLocaleString() : 'Never';
-    document.getElementById('syncExistingInfo').style.display = 'block';
-    document.getElementById('syncExistingText').textContent = `ID: ${syncId} • Last synced: ${lastSync}`;
-    document.getElementById('syncWorkspaceInfo').textContent = settings.workspaceId ? `Workspace ID: ${settings.workspaceId}` : 'No workspace integrated';
+    if (savedSettings.email || savedSettings.username || savedSettings.lastSync || savedSettings.workspaceId) {
+      const syncId = generateSyncId(savedSettings.email, savedSettings.username);
+      const lastSync = savedSettings.lastSync ? new Date(savedSettings.lastSync).toLocaleString() : 'Never';
+      document.getElementById('syncExistingInfo').style.display = 'block';
+      document.getElementById('syncExistingText').textContent = `ID: ${syncId} • Last synced: ${lastSync}`;
+      document.getElementById('syncWorkspaceInfo').textContent = savedSettings.workspaceId ? `Workspace ID: ${savedSettings.workspaceId}` : 'No workspace integrated';
+    }
   } else {
     document.getElementById('syncUrlInput').value = '';
   }
@@ -10470,11 +10301,14 @@ function closeSyncModal() {
 }
 
 async function confirmSync() {
-  const email = document.getElementById('syncEmail').value.trim();
-  const username = document.getElementById('syncUsername').value.trim();
+  const btn = document.getElementById('syncConfirmBtn');
+  const emailInput = document.getElementById('syncEmail');
+  const usernameInput = document.getElementById('syncUsername');
+  const syncUrlInput = document.getElementById('syncUrlInput');
+  const email = emailInput ? emailInput.value.trim() : '';
+  const username = usernameInput ? usernameInput.value.trim() : '';
   
   // Validate inputs
-  const syncUrlInput = document.getElementById('syncUrlInput');
   const customUrl = syncUrlInput ? syncUrlInput.value.trim() : '';
   if (customUrl) {
     if (!validateCloudSyncUrl(customUrl)) {
@@ -10493,9 +10327,10 @@ async function confirmSync() {
     return;
   }
   
-  const btn = document.getElementById('syncConfirmBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Syncing...';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Syncing...';
+  }
   
   // Show loading animation
   showSyncLoadingAnimation();
@@ -10540,8 +10375,10 @@ async function confirmSync() {
     showSyncStatus('✓ Synced all tasks! ID: ' + syncSettings.syncId, 'success');
     
     // Ensure button is re-enabled
-    btn.disabled = false;
-    btn.textContent = '☁ Sync now';
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '☁ Sync now';
+    }
     
     setTimeout(() => {
       closeSyncModal();
