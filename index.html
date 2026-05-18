@@ -3229,13 +3229,6 @@ body.text-mode .btn .btn-text {
         <button onclick="openCalendarTaskModal()" class="btn-add" style="width: 100%;">Create Task</button>
       </div>
 
-      <div class="sidebar-section">
-        <div class="sidebar-title">📧 Send Tasks via Email</div>
-        <button onclick="openEmailTasksModal()" class="btn btn-report" style="width: 100%;">📧 Send to Email</button>
-        <div id="emailSyncStatus" style="font-size: 10px; color: var(--muted); margin-top: 6px;"></div>
-      </div>
-
-
 
     </div>
   </div>
@@ -3284,47 +3277,6 @@ body.text-mode .btn .btn-text {
         <button class="btn-cancel" onclick="closeCalendarTaskModal()">Cancel</button>
         <button class="btn-confirm" onclick="saveCalendarTask()">Add Task</button>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- Email Tasks Modal -->
-<div class="modal-bg" id="emailTasksModal">
-  <div class="modal" style="max-width: 500px;">
-    <h2>📧 Send Weekly Schedule</h2>
-    <p style="font-size: 11px; color: var(--muted); margin-bottom: 16px;">Send your entire week's schedule to your email. All tasks will be included in a formatted email with calendar conversion support.</p>
-    
-    <div class="field">
-      <label>Email Address</label>
-      <input type="email" id="emailTasksRecipient" placeholder="your@email.com" />
-      <div style="font-size: 9px; color: var(--muted2); margin-top: 4px;">Where to send the weekly schedule</div>
-    </div>
-
-    <div class="field">
-      <label>Include in Email</label>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <label style="font-size: 11px; color: var(--muted2); display: flex; align-items: center; gap: 6px; cursor: pointer;">
-          <input type="checkbox" id="emailIncludeNotes" checked style="cursor: pointer;" />
-          <span>Task notes</span>
-        </label>
-        <label style="font-size: 11px; color: var(--muted2); display: flex; align-items: center; gap: 6px; cursor: pointer;">
-          <input type="checkbox" id="emailIncludeDuration" checked style="cursor: pointer;" />
-          <span>Task duration</span>
-        </label>
-        <label style="font-size: 11px; color: var(--muted2); display: flex; align-items: center; gap: 6px; cursor: pointer;">
-          <input type="checkbox" id="emailIncludeCompleted" style="cursor: pointer;" />
-          <span>Include completed tasks</span>
-        </label>
-      </div>
-    </div>
-
-    <div id="emailStatus" style="background: var(--surface2); border-radius: 8px; padding: 12px; margin: 16px 0; font-size: 11px; color: var(--muted); display: none;">
-      <span id="emailStatusText"></span>
-    </div>
-
-    <div class="modal-actions">
-      <button type="button" class="btn-cancel" onclick="closeEmailTasksModal()">Cancel</button>
-      <button type="button" class="btn-confirm" onclick="sendWeeklySchedule(event)">📧 Send Schedule</button>
     </div>
   </div>
 </div>
@@ -4054,7 +4006,7 @@ function updateBadges() {
 ═══════════════════════════════════════════ */
 // ===== UNIFIED TASK SYSTEM =====
 // Both timer and calendar use the SAME task list
-const CLOUD_SYNC_URL = 'https://script.google.com/macros/s/AKfycbySuQ2HFd69V6oGBq8pCMbclTj1I5-rHVUmo9fjj_2MeyhYehq21Pj8Q4nrDW5GV6vY/exec';
+const CLOUD_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyTZWagqN6sv2WVL_peP7yYvtQZgPdjrEYeupp_Bklh2cXNK5Xv0xuhu5JCbf-5EGy9/exec';
 let allTasks = [];  // Single source of truth for all tasks
 let flowTasks = [];  // Deprecated alias - automatically synced with allTasks
 let calendarTasks = [];  // Deprecated alias - automatically synced with allTasks
@@ -9893,110 +9845,6 @@ function splitMultiDateCalendarTasks() {
   }
 }
 
-// Email Tasks Functions
-function openEmailTasksModal() {
-  const modal = document.getElementById('emailTasksModal');
-  if (!modal) return;
-  modal.classList.add('open');
-  loadUserEmailFromStorage();
-  loadAppScriptUrlFromStorage();
-}
-
-function closeEmailTasksModal() {
-  document.getElementById('emailTasksModal').classList.remove('open');
-}
-
-function loadUserEmailFromStorage() {
-  const savedEmail = localStorage.getItem('user_email') || '';
-  const emailInput = document.getElementById('emailTasksRecipient');
-  if (emailInput) emailInput.value = savedEmail;
-}
-
-function loadAppScriptUrlFromStorage() {
-  // Using default AppScript URL for all users - no prompt needed
-  // The default URL is hardcoded in sendWeeklySchedule()
-}
-
-async function sendWeeklySchedule(event) {
-  const recipientEmail = document.getElementById('emailTasksRecipient').value.trim();
-  const includeNotes = document.getElementById('emailIncludeNotes').checked;
-  const includeDuration = document.getElementById('emailIncludeDuration').checked;
-  const includeCompleted = document.getElementById('emailIncludeCompleted').checked;
-  
-  if (!recipientEmail || !recipientEmail.includes('@')) {
-    alert('⚠️ Please enter a valid email address');
-    return;
-  }
-  
-  // Use default AppScript URL for all users
-  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbySuQ2HFd69V6oGBq8pCMbclTj1I5-rHVUmo9fjj_2MeyhYehq21Pj8Q4nrDW5GV6vY/exec';
-  
-  // Save email for future use
-  localStorage.setItem('user_email', recipientEmail);
-  
-  // Get all tasks from calendar (both flowTasks and calendarTasks)
-  let allTasks = [...flowTasks, ...calendarTasks];
-  
-  // Filter by completed if needed
-  let tasksToSend = allTasks;
-  if (!includeCompleted) {
-    tasksToSend = allTasks.filter(t => t.state !== 'done' && !t.completed);
-  }
-  
-  if (tasksToSend.length === 0) {
-    alert('⚠️ No tasks to send');
-    return;
-  }
-  
-  // Show loading state
-  const sendBtn = event.target;
-  const originalText = sendBtn.textContent;
-  sendBtn.textContent = '⟳ Sending...';
-  sendBtn.disabled = true;
-  
-  try {
-    // Build task data for email
-    const taskData = tasksToSend.map(task => ({
-      name: task.name,
-      duration: includeDuration ? (task.allocSecs ? fmtDurF(task.allocSecs) : task.duration || 'Untimed') : '',
-      notes: includeNotes ? (task.notes || task.scheduledNote || '') : '',
-      state: task.state || (task.completed ? 'done' : 'pending'),
-      allocSecs: task.allocSecs || (task.duration ? parseInt(task.duration) * 60 : 0),
-      date: task.scheduledDate || new Date().toISOString().split('T')[0]
-    }));
-    
-    // Send to AppScript to handle email
-    const response = await fetch(appscriptUrl, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'sendTaskEmail',
-        recipientEmail: recipientEmail,
-        tasks: taskData,
-        includeNotes: includeNotes,
-        includeDuration: includeDuration,
-        includeCompleted: includeCompleted,
-        timestamp: new Date().toISOString(),
-        scheduleType: 'weekly',
-        taskCount: tasksToSend.length
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      alert(`✓ Weekly schedule sent to ${recipientEmail}\n${tasksToSend.length} task${tasksToSend.length === 1 ? '' : 's'} included`);
-      closeEmailTasksModal();
-    } else {
-      alert(`⚠️ Error: ${result.error || 'Failed to send email'}`);
-    }
-  } catch (err) {
-    console.error('Error sending schedule:', err);
-    alert('⚠️ Error sending schedule. Check console for details.');
-  } finally {
-    sendBtn.textContent = originalText;
-    sendBtn.disabled = false;
-  }
-}
 
 function openSuggestionModal() {
   const modal = document.getElementById('suggestionModal');
@@ -10025,7 +9873,7 @@ async function sendFeatureSuggestion(event) {
   const suggestionStatus = document.getElementById('suggestionStatus');
   const suggestionStatusText = document.getElementById('suggestionStatusText');
   const recipientEmail = 'aguiadahoyann@icloud.com';
-  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbySuQ2HFd69V6oGBq8pCMbclTj1I5-rHVUmo9fjj_2MeyhYehq21Pj8Q4nrDW5GV6vY/exec';
+  const appscriptUrl = 'https://script.google.com/macros/s/AKfycbyTZWagqN6sv2WVL_peP7yYvtQZgPdjrEYeupp_Bklh2cXNK5Xv0xuhu5JCbf-5EGy9/exec';
 
   if (!suggestionText) {
     alert('⚠️ Please enter your suggestion before submitting.');
