@@ -8809,6 +8809,7 @@ function exportDetailedReport() {
    PERSISTENCE
 ═══════════════════════════════════════════ */
 const FLOW_KEY  = 'flow_tasks_v2';
+const FALLBACK_FLOW_KEY = 'flow_tasks';
 
 function saveFlowData() {
   // ===== SAFE PERSISTENCE: Only save if data has been successfully loaded or the user made a manual change =====
@@ -8817,56 +8818,39 @@ function saveFlowData() {
     return;
   }
   
+  const dataToSave = {
+    tasks: allTasks,  // ===== Use unified allTasks =====
+    discardedTasks: discardedTasks,
+    trashedTasks: trashedTasks,
+    dayStartTime: dayStartTime,
+    workStartTime: workStartTime,
+    workEndTime: workEndTime,
+    activeDateRange: activeDateRange,
+    customDateFilter: customDateFilter,
+    savedAt: new Date().toISOString()
+  };
+
   try {
-    const dataToSave = {
-      tasks: allTasks,  // ===== Use unified allTasks =====
-      discardedTasks: discardedTasks,
-      trashedTasks: trashedTasks,
-      dayStartTime: dayStartTime,
-      workStartTime: workStartTime,
-      workEndTime: workEndTime,
-      activeDateRange: activeDateRange,
-      customDateFilter: customDateFilter,
-      savedAt: new Date().toISOString()
-    };
-    
-    // Try to save to file (Electron)
-    if (window.api && window.api.saveTasks) {
-      window.api.saveTasks(dataToSave).catch((err) => {
-        // Fallback to localStorage if file save fails
-        try {
-          localStorage.setItem(FLOW_KEY, JSON.stringify(dataToSave));
-        } catch (storageErr) {
-          if (storageErr.name === 'QuotaExceededError') {
-            console.error('Storage quota exceeded. Cannot save data.', storageErr);
-            alert('Storage full! Local storage quota exceeded. Please clear some space.');
-          } else {
-            console.error('Save Error (file fallback):', storageErr);
-          }
-        }
-      });
+    const serialized = JSON.stringify(dataToSave);
+    localStorage.setItem(FLOW_KEY, serialized);
+    localStorage.setItem(FALLBACK_FLOW_KEY, serialized);
+  } catch (storageErr) {
+    if (storageErr.name === 'QuotaExceededError') {
+      console.error('Storage quota exceeded. Cannot save data.', storageErr);
+      alert('Storage full! Local storage quota exceeded. Please clear some space.');
     } else {
-      // Fallback to localStorage
-      try {
-        localStorage.setItem(FLOW_KEY, JSON.stringify(dataToSave));
-      } catch (storageErr) {
-        if (storageErr.name === 'QuotaExceededError') {
-          console.error('Storage quota exceeded. Cannot save data.', storageErr);
-          alert('Storage full! Local storage quota exceeded. Please clear some space.');
-        } else {
-          console.error('Save Error:', storageErr);
-        }
-      }
-    }
-    
-    flashSaveIndicator('flowSaveIndicator');
-    updateFlowLastSaved();
-  } catch(e) {
-    console.error('Save Error (JSON.stringify):', e);
-    if (e instanceof TypeError) {
-      console.error('Possible circular reference or non-serializable object in tasks:', e.message);
+      console.error('Save Error:', storageErr);
     }
   }
+
+  if (window.api && window.api.saveTasks) {
+    window.api.saveTasks(dataToSave).catch((err) => {
+      console.warn('Electron file save failed, but localStorage save has already completed.', err);
+    });
+  }
+
+  flashSaveIndicator('flowSaveIndicator');
+  updateFlowLastSaved();
 }
 
 async function syncElapsedTime(overrideElapsedSeconds) {
@@ -8924,9 +8908,13 @@ async function loadFlowData() {
     
     // Fallback to localStorage
     if (!data) {
-      const raw = localStorage.getItem(FLOW_KEY);
+      let raw = localStorage.getItem(FLOW_KEY);
+      if (!raw) {
+        raw = localStorage.getItem(FALLBACK_FLOW_KEY);
+      }
       if (!raw) {
         console.log('No saved data found. Starting with empty tasks.');
+        hasSuccessfullyLoaded = true;
         return;
       }
       
@@ -8934,8 +8922,22 @@ async function loadFlowData() {
         data = JSON.parse(raw);
       } catch (parseErr) {
         console.error('JSON parse error in localStorage data:', parseErr);
-        console.warn('Could not parse saved data. Preventing overwrite until the user makes an explicit change.');
-        return;
+        const fallbackRaw = localStorage.getItem(FALLBACK_FLOW_KEY);
+        if (fallbackRaw && fallbackRaw !== raw) {
+          console.warn('Primary storage corrupted, attempting fallback key.');
+          try {
+            data = JSON.parse(fallbackRaw);
+          } catch (fallbackErr) {
+            console.error('Fallback parse error:', fallbackErr);
+            console.warn('Could not parse saved data. Preventing overwrite until the user makes an explicit change.');
+            hasSuccessfullyLoaded = true;
+            return;
+          }
+        } else {
+          console.warn('Could not parse saved data. Preventing overwrite until the user makes an explicit change.');
+          hasSuccessfullyLoaded = true;
+          return;
+        }
       }
     }
     
@@ -11088,6 +11090,5 @@ if (document.readyState === 'loading') {
 
 </body>
 </html>
-
 
 
