@@ -1588,6 +1588,16 @@ body.text-mode .btn .btn-text {
   background: var(--surface2);
 }
 
+.calendar-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calendar-search-results .task-item-cal {
+  border-color: var(--border);
+}
+
 .task-item-cal-name {
   font-size: 12px;
   font-weight: 500;
@@ -2996,7 +3006,7 @@ body.text-mode .btn .btn-text {
           <span class="filter-label">📅 Date</span>
           <select class="filter-dropdown" id="dateRangeSelect" onchange="setDateRange(this.value)">
             <option value="all">All Time</option>
-            <option value="today">Today</option>
+            <option value="today" selected>Today</option>
             <option value="yesterday">Yesterday</option>
             <option value="tomorrow">Tomorrow</option>
             <option value="week">This Week</option>
@@ -3223,6 +3233,11 @@ body.text-mode .btn .btn-text {
       <div class="sidebar-section">
         <div class="sidebar-title">📋 Today's Tasks</div>
         <div id="todayTasksList" class="tasks-list"></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">🔎 Search Results</div>
+        <input id="calendarSearchInput" type="search" placeholder="Search calendar tasks..." oninput="renderCalendarSearchResults()" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border2); background:var(--bg); color:var(--text); margin-bottom:12px;" />
+        <div id="calendarSearchResults" class="tasks-list"><div style="color: var(--muted); font-size: 12px; text-align: center; padding: 16px;">Search calendar tasks by name to see matching dates and times.</div></div>
       </div>
       <div class="sidebar-section">
         <div class="sidebar-title">➕ Add Task to Calendar</div>
@@ -4039,7 +4054,7 @@ let activeFilters = {
 };
 
 // Date filtering settings
-let activeDateRange = 'all'; // 'all', 'today', 'yesterday', 'tomorrow', 'week', 'month', 'year', 'custom'
+let activeDateRange = 'today'; // 'all', 'today', 'yesterday', 'tomorrow', 'week', 'month', 'year', 'custom'
 let customDateFilter = null; // ISO date string for custom date filter
 
 function fmtF(s) {
@@ -4329,7 +4344,7 @@ function getRemainingTasksHours() {
   let totalSecs = 0;
   
   activeTasks.forEach(t => {
-    const worked = totalWorkedSecs(t);
+    const worked = totalWorkedSecs(t, getContextDateStr());
     const remaining = Math.max(t.allocSecs - worked, 0);
     totalSecs += remaining;
   });
@@ -6042,12 +6057,13 @@ function getCurrentGapTime() {
 
 function updateFlowStats() {
   const currentDateStr = getContextDateStr();
-  let worked=0, brk=0;
-  flowTasks.forEach(t=>{ worked+=totalWorkedSecs(t, currentDateStr); brk+=totalBreakSecs(t, currentDateStr); });
-  
+  let worked = 0, brk = 0;
+  const visibleTasks = allTasks.filter(t => !t.isMinimized && shouldShowTask(t));
+  visibleTasks.forEach(t => { worked += totalWorkedSecs(t, currentDateStr); brk += totalBreakSecs(t, currentDateStr); });
+
   // Calculate total gaps (completed gaps + current ongoing gap)
-  document.getElementById('s-total').textContent = flowTasks.length;
-  document.getElementById('s-done').textContent = flowTasks.filter(t=>getCurrentTaskState(t)==='done').length;
+  document.getElementById('s-total').textContent = visibleTasks.length;
+  document.getElementById('s-done').textContent = visibleTasks.filter(t => getCurrentTaskState(t) === 'done').length;
   document.getElementById('s-worked').textContent = fmtF(worked);
   document.getElementById('s-break').textContent = fmtF(brk);
 }
@@ -6055,7 +6071,6 @@ function updateFlowStats() {
 function renderFlowList() {
   closeTip();
   const list = document.getElementById('task-list');
-  document.getElementById('empty-state').style.display = allTasks.filter(t => !t.isMinimized).length===0 ? 'block' : 'none';
   list.innerHTML = '';
   
   // ===== Normalize calendar tasks for timer display =====
@@ -6072,6 +6087,7 @@ function renderFlowList() {
   
   // Filter tasks based on active filters AND exclude minimized tasks
   const filteredTasks = allTasks.filter(t => !t.isMinimized && shouldShowTask(t));
+  document.getElementById('empty-state').style.display = filteredTasks.length === 0 ? 'block' : 'none';
   const currentDateStr = getContextDateStr();
   
   // Sort tasks: running > paused (break) > idle > done (FULLY AUTOMATIC)
@@ -6188,18 +6204,20 @@ function renderFlowList() {
     dropdownItems += `<button class="dropdown-item" onclick="minimizeTask(${t.id})"><span class="btn-icon">−</span> Minimize</button>`;
     dropdownItems += `<button class="dropdown-item danger" onclick="discardTask(${t.id})"><span class="btn-icon">⊘</span> Discard</button>`;
     
-    // Build the dropdown control with more options button
-    const dropdownId = `dropdown-${t.id}`;
-    let ctrl = visibleBtns + `
-      <div class="task-controls-dropdown">
-        <button class="dropdown-toggle" onclick="toggleTaskDropdown('${dropdownId}')" title="More options">
-          <span style="font-size: 12px;">⋯</span>
-        </button>
-        <div class="dropdown-menu" id="${dropdownId}">
-          ${dropdownItems}
-        </div>
-      </div>
-    `;
+    // Build direct action buttons for task controls instead of the dropdown
+    let ctrl = visibleBtns;
+    ctrl += `<button class="btn" onclick="openEditTaskName(${t.id})"><span class="btn-icon">✎</span> <span class="btn-text">Edit</span></button>`;
+    if (!t.isUntimed) {
+      if (t.isMerged) {
+        ctrl += `<button class="btn" onclick="unmergeTask(${t.id})"><span class="btn-icon">⤴</span> <span class="btn-text">Unmerge</span></button>`;
+      } else {
+        ctrl += `<button class="btn" onclick="openMergeModal(${t.id})"><span class="btn-icon">🔀</span> <span class="btn-text">Merge</span></button>`;
+      }
+      ctrl += `<button class="btn" onclick="openExtendModal(${t.id})"><span class="btn-icon">⏱</span> <span class="btn-text">Extend</span></button>`;
+    }
+    ctrl += `<button class="btn" onclick="addToTray(${t.id},'flow')"><span class="btn-icon">⇄</span> <span class="btn-text">Clock</span></button>`;
+    ctrl += `<button class="btn" onclick="exportSingleFlowTask(${t.id})"><span class="btn-icon">↓</span> <span class="btn-text">JSON</span></button>`;
+    ctrl += `<button class="btn danger" onclick="discardTask(${t.id})"><span class="btn-icon">⊘</span> <span class="btn-text">Discard</span></button>`;
 
     // Apply view mode styling
     const card = document.createElement('div');
@@ -9727,6 +9745,34 @@ function renderTodaysTasks() {
   `).join('');
 }
 
+function renderCalendarSearchResults() {
+  const list = document.getElementById('calendarSearchResults');
+  const searchInput = document.getElementById('calendarSearchInput');
+  if (!list || !searchInput) return;
+  const query = searchInput.value.trim().toLowerCase();
+  if (!query) {
+    list.innerHTML = '<div style="color: var(--muted); font-size: 12px; text-align: center; padding: 16px;">Search calendar tasks by name to see matching dates and times.</div>';
+    return;
+  }
+
+  const matches = calendarTasks.filter(task => task.name && task.name.toLowerCase().includes(query));
+  if (!matches.length) {
+    list.innerHTML = `<div style="color: var(--muted); font-size: 12px; text-align: center; padding: 16px;">No calendar tasks match “${query}”.</div>`;
+    return;
+  }
+
+  list.innerHTML = matches.map(task => {
+    const dates = getTaskScheduledDates(task);
+    const dateLabel = dates.length > 0 ? dates.join(', ') : (task.scheduledDate || 'No date');
+    return `
+      <div class="task-item-cal">
+        <div class="task-item-cal-name">${task.name}</div>
+        <div class="task-item-cal-time">${dateLabel} • ${String(task.hour || 0).padStart(2, '0')}:00 • ${task.duration || 0} min</div>
+      </div>
+    `;
+  }).join('');
+}
+
 function selectCalendarDate(day) {
   calendarCurrentDate.setDate(day);
   renderDayView();
@@ -10775,5 +10821,4 @@ if (document.readyState === 'loading') {
 
 </body>
 </html>
-
 
