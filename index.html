@@ -3234,8 +3234,24 @@ body.text-mode .btn .btn-text {
         <button onclick="openCalendarTaskModal()" class="btn-add" style="width: 100%;">Create Task</button>
       </div>
       <div class="sidebar-section">
-        <div class="sidebar-title">📅 Export Day to Calendar</div>
-        <button onclick="exportSelectedDayToICS()" class="btn-add" style="width: 100%;">Export Selected Day (.ics)</button>
+        <div class="sidebar-title">� Add to Mobile Calendar</div>
+        <div style="display: grid; gap: 10px; padding: 0 0 4px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 12px; color: var(--muted);">From</span>
+              <input id="icsStartDate" type="date" style="width: 100%; padding: 12px 12px; border-radius: 14px; border: 1px solid var(--border2); background: var(--bg); color: var(--text);" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 12px; color: var(--muted);">To</span>
+              <input id="icsEndDate" type="date" style="width: 100%; padding: 12px 12px; border-radius: 14px; border: 1px solid var(--border2); background: var(--bg); color: var(--text);" />
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button onclick="setCalendarExportRangeToCurrentView()" class="clock-btn ghost" style="flex: 1 1 48%; min-width: 0; padding: 12px 0;">Use current view</button>
+            <button onclick="exportICSForSelectedRange()" data-export-mobile class="btn-add" style="flex: 1 1 48%; min-width: 0; padding: 12px 0;">Open on mobile calendar</button>
+          </div>
+          <div id="calendarExportNotice" style="font-size: 12px; color: var(--muted);">On mobile, this opens the device calendar so you can add the selected range directly. On desktop, use the per-task Google button to add events one by one.</div>
+        </div>
       </div>
 
 
@@ -6267,6 +6283,7 @@ function renderFlowList() {
           </div>
         </div>
       </div>
+      ${canDone && taskState !== 'done' ? `<button class="btn done-early" onclick="markDone(${t.id})" title="Mark as complete" style="position:absolute;top:10px;right:12px;z-index:25;padding:6px 8px;border-radius:8px;">✓</button>` : ''}
       ${!t.isUntimed ? `<div class="bar-outer"><div class="bar-track" style="position:relative;height:100%;overflow:hidden;">${buildBarHTML(t, currentDateStr)}</div></div>` : ''}
       <div class="controls"><span class="status-pill ${pillClass}">${pillText}</span>${ctrl}</div>`;
     list.appendChild(card);
@@ -9580,6 +9597,57 @@ function initCalendarPage() {
   calendarCurrentDate = new Date();
   renderCalendarView();
   renderTodaysTasks();
+  setCalendarExportRangeToCurrentView();
+}
+
+function getCalendarViewRange() {
+  const start = new Date(calendarCurrentDate);
+  const end = new Date(calendarCurrentDate);
+
+  if (calendarCurrentView === 'week') {
+    start.setDate(calendarCurrentDate.getDate() - calendarCurrentDate.getDay());
+    end.setDate(start.getDate() + 6);
+  } else if (calendarCurrentView === 'month') {
+    start.setDate(1);
+    end.setMonth(calendarCurrentDate.getMonth() + 1);
+    end.setDate(0);
+  }
+
+  return {
+    startIso: getDateString(start),
+    endIso: getDateString(end)
+  };
+}
+
+function setCalendarExportRangeInputs(startIso, endIso) {
+  const startInput = document.getElementById('icsStartDate');
+  const endInput = document.getElementById('icsEndDate');
+  if (startInput) startInput.value = startIso;
+  if (endInput) endInput.value = endIso;
+}
+
+function setCalendarExportRangeToCurrentView() {
+  const range = getCalendarViewRange();
+  setCalendarExportRangeInputs(range.startIso, range.endIso);
+  updateCalendarExportLabel();
+}
+
+function isMobileDevice() {
+  return /Mobi|Android|iPhone|iPad|iPod|Windows Phone|webOS/i.test(navigator.userAgent);
+}
+
+function updateCalendarExportLabel() {
+  const button = document.querySelector('[data-export-mobile]');
+  const notice = document.getElementById('calendarExportNotice');
+  if (!button || !notice) return;
+
+  if (isMobileDevice()) {
+    button.textContent = '📱 Open on mobile calendar';
+    notice.textContent = 'On mobile, this opens the device calendar so you can add the selected tasks directly.';
+  } else {
+    button.textContent = '📱 Download .ics';
+    notice.textContent = 'On desktop, use the per-task Google button to add individual tasks directly to Google Calendar.';
+  }
 }
 
 function setCalendarView(view) {
@@ -9588,12 +9656,14 @@ function setCalendarView(view) {
     btn.classList.toggle('active', btn.dataset.view === view);
   });
   renderCalendarView();
+  setCalendarExportRangeToCurrentView();
 }
 
 function prevCalendarMonth() {
   calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() - 1);
   renderCalendarView();
   renderTodaysTasks();
+  setCalendarExportRangeToCurrentView();
 }
 
 function nextCalendarMonth() {
@@ -9606,6 +9676,7 @@ function calendarToday() {
   calendarCurrentDate = new Date();
   renderCalendarView();
   renderTodaysTasks();
+  setCalendarExportRangeToCurrentView();
 }
 
 function renderCalendarView() {
@@ -9779,9 +9850,10 @@ function renderDayView() {
       html += `<div class="task-item-cal" style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
         <div>
           <div class="task-item-cal-name">${task.name}</div>
-          <div class="task-item-cal-time">${String(task.hour).padStart(2, '0')}:00 - ${task.duration} min</div>
+          <div class="task-item-cal-time">${String(task.hour).padStart(2, '0')}:00 - ${task.duration || 60} min</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="openTaskInGoogleCalendar('${task.id}')" style="padding: 6px 10px; background: var(--surface); color: var(--text); border: 1px solid var(--border2); border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;" onmouseover="this.style.background='rgba(0,0,0,0.04)'" onmouseout="this.style.background='var(--surface)'">+ Google</button>
           <button onclick="deleteCalendarTask('${task.id}')" style="padding: 6px; background: transparent; color: #ff5454; border: 1px solid rgba(255,80,80,0.3); border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;" onmouseover="this.style.background='rgba(255, 80, 80, 0.12)'" onmouseout="this.style.background='transparent'">✕</button>
         </div>
       </div>`;
@@ -9804,26 +9876,78 @@ function getTasksForDate(date) {
   });
 }
 
-function exportSelectedDayToICS() {
-  const tasks = getTasksForDate(calendarCurrentDate);
-  if (!tasks || tasks.length === 0) {
-    alert('No tasks are scheduled for the selected day.');
+function openTaskInGoogleCalendar(taskId) {
+  const task = allTasks.find(t => String(t.id) === String(taskId));
+  if (!task) {
+    alert('Task not found.');
     return;
   }
 
-  const date = calendarCurrentDate;
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const filename = `tempow-calendar-${year}${month}${day}.ics`;
-  const ics = buildICSForDate(tasks, date);
+  const dateStr = getDateString(calendarCurrentDate);
+  const url = buildGoogleCalendarUrl(task, dateStr);
+  window.open(url, '_blank', 'noopener');
+}
+
+function buildGoogleCalendarUrl(task, dateStr) {
+  const startHour = Number(task.hour || 9);
+  const durationMinutes = Number(task.duration || Math.round((task.allocSecs || 0) / 60) || 60);
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const startDate = new Date(year, month - 1, day, startHour, 0, 0);
+  const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+
+  const formatUTC = date => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+  const startUtc = formatUTC(startDate);
+  const endUtc = formatUTC(endDate);
+
+  const summary = encodeURIComponent(task.name || 'Task');
+  const description = encodeURIComponent(`Duration: ${durationMinutes} min${task.notes ? `\nNotes: ${task.notes}` : ''}`);
+  const location = encodeURIComponent(task.location || '');
+
+  let url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${summary}&dates=${startUtc}/${endUtc}&details=${description}`;
+  if (location) url += `&location=${location}`;
+  url += '&sf=true&output=xml';
+  return url;
+}
+
+function exportICSForSelectedRange() {
+  const startInput = document.getElementById('icsStartDate');
+  const endInput = document.getElementById('icsEndDate');
+  if (!startInput || !endInput) return;
+
+  const startIso = startInput.value;
+  const endIso = endInput.value;
+  if (!startIso || !endIso) {
+    alert('Please select both a start date and an end date.');
+    return;
+  }
+  if (startIso > endIso) {
+    alert('The start date must come before or equal to the end date.');
+    return;
+  }
+
+  const tasks = getTasksForDateRange(startIso, endIso);
+  if (!tasks.length) {
+    alert('No tasks are scheduled for the selected date range.');
+    return;
+  }
+
+  const filename = startIso === endIso
+    ? `tempow-calendar-${startIso}.ics`
+    : `tempow-calendar-${startIso}-to-${endIso}.ics`;
+  const ics = buildICSForRange(tasks, startIso, endIso);
   downloadTextFile(ics, filename, 'text/calendar;charset=utf-8');
 }
 
-function buildICSForDate(tasks, date) {
+function getTasksForDateRange(startIso, endIso) {
+  return calendarTasks.filter(task => {
+    return getTaskScheduledDates(task).some(taskDate => taskDate >= startIso && taskDate <= endIso);
+  });
+}
+
+function buildICSForRange(tasks, startIso, endIso) {
   const now = new Date();
   const dtStamp = formatICSTimestamp(now);
-  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
   let ics = '';
   ics += 'BEGIN:VCALENDAR\r\n';
   ics += 'VERSION:2.0\r\n';
@@ -9832,28 +9956,31 @@ function buildICSForDate(tasks, date) {
   ics += 'METHOD:PUBLISH\r\n';
 
   tasks.forEach(task => {
-    const startDate = new Date(date);
-    const startHour = Number(task.hour || 0);
-    startDate.setHours(startHour, 0, 0, 0);
-    const durationMinutes = Number(task.duration || Math.round((task.allocSecs || 0) / 60) || 60);
-    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-    const uid = `tempow-${task.id || Math.random().toString(36).slice(2)}@tempow.app`;
-    const summary = escapeICSText(task.name || 'Task');
-    const notes = task.notes || task.note || '';
-    const description = escapeICSText(`Task: ${task.name || 'Untitled'}\nDuration: ${durationMinutes} min\nNotes: ${notes}`);
-    const location = escapeICSText(task.location || '');
+    const taskDates = getTaskScheduledDates(task).filter(dateStr => dateStr >= startIso && dateStr <= endIso);
+    taskDates.forEach(taskDate => {
+      const [year, month, day] = taskDate.split('-').map(s => Number(s));
+      const startDate = new Date(year, month - 1, day);
+      startDate.setHours(Number(task.hour || 9), 0, 0, 0);
+      const durationMinutes = Number(task.duration || Math.round((task.allocSecs || 0) / 60) || 60);
+      const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+      const uid = `tempow-${task.id || Math.random().toString(36).slice(2)}-${taskDate}@tempow.app`;
+      const summary = escapeICSText(task.name || 'Task');
+      const notes = task.notes || task.note || '';
+      const description = escapeICSText(`Task: ${task.name || 'Untitled'}\nDuration: ${durationMinutes} min${notes ? `\nNotes: ${notes}` : ''}`);
+      const location = escapeICSText(task.location || '');
 
-    ics += 'BEGIN:VEVENT\r\n';
-    ics += `UID:${uid}\r\n`;
-    ics += `DTSTAMP:${dtStamp}\r\n`;
-    ics += `DTSTART:${formatICSTimestamp(startDate, false)}\r\n`;
-    ics += `DTEND:${formatICSTimestamp(endDate, false)}\r\n`;
-    ics += `SUMMARY:${summary}\r\n`;
-    ics += `DESCRIPTION:${description}\r\n`;
-    if (location) ics += `LOCATION:${location}\r\n`;
-    ics += 'STATUS:CONFIRMED\r\n';
-    ics += 'TRANSP:OPAQUE\r\n';
-    ics += 'END:VEVENT\r\n';
+      ics += 'BEGIN:VEVENT\r\n';
+      ics += `UID:${uid}\r\n`;
+      ics += `DTSTAMP:${dtStamp}\r\n`;
+      ics += `DTSTART:${formatICSTimestamp(startDate, true)}\r\n`;
+      ics += `DTEND:${formatICSTimestamp(endDate, true)}\r\n`;
+      ics += `SUMMARY:${summary}\r\n`;
+      ics += `DESCRIPTION:${description}\r\n`;
+      if (location) ics += `LOCATION:${location}\r\n`;
+      ics += 'STATUS:CONFIRMED\r\n';
+      ics += 'TRANSP:OPAQUE\r\n';
+      ics += 'END:VEVENT\r\n';
+    });
   });
 
   ics += 'END:VCALENDAR\r\n';
@@ -9950,7 +10077,7 @@ function renderCalendarSearchResults() {
 
 function selectCalendarDate(day) {
   calendarCurrentDate.setDate(day);
-  renderDayView();
+  setCalendarView('day');
 }
 
 function openCalendarTaskModal() {
