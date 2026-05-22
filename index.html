@@ -157,6 +157,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .page { display: none; }
 .page.active { display: block; }
 
+/* Hide clock and help pages */
+#page-clock { display: none !important; }
+#page-help { display: none !important; }
+
 /* ══════════════════════════════════════════
    24H CLOCK STYLES (integrated)
 ══════════════════════════════════════════ */
@@ -2844,19 +2848,12 @@ body.text-mode .btn .btn-text {
     <button class="nav-tab active" onclick="switchPage('flow')">
       ⏱ Timer
     </button>
-    <button class="nav-tab clock-tab" onclick="switchPage('clock')">
-      ◕ 24h Clock
-      <span class="transfer-badge" id="clock-badge"></span>
-    </button>
     <button class="nav-tab" onclick="switchPage('calendar')">
       📅 Calendar
       <span class="transfer-badge" id="calendar-badge"></span>
     </button>
     <button class="nav-tab" onclick="switchPage('report')">
       📊 Reports
-    </button>
-    <button class="nav-tab" onclick="switchPage('help')">
-      ❓ Help
     </button>
   </div>
   <button class="hamburger-menu" id="hamburgerMenu" onclick="toggleMobileMenu()">
@@ -2871,19 +2868,12 @@ body.text-mode .btn .btn-text {
   <button class="nav-tab" onclick="switchPage('flow'); closeMobileMenu();">
     ⏱ Timer
   </button>
-  <button class="nav-tab clock-tab" onclick="switchPage('clock'); closeMobileMenu();">
-    ◕ 24h Clock
-    <span class="transfer-badge" id="clock-badge-mobile"></span>
-  </button>
   <button class="nav-tab" onclick="switchPage('calendar'); closeMobileMenu();">
     📅 Calendar
     <span class="transfer-badge" id="calendar-badge-mobile"></span>
   </button>
   <button class="nav-tab" onclick="switchPage('report'); closeMobileMenu();">
     📊 Reports
-  </button>
-  <button class="nav-tab" onclick="switchPage('help'); closeMobileMenu();">
-    ❓ Help
   </button>
 </div>
 
@@ -3242,6 +3232,10 @@ body.text-mode .btn .btn-text {
       <div class="sidebar-section">
         <div class="sidebar-title">➕ Add Task to Calendar</div>
         <button onclick="openCalendarTaskModal()" class="btn-add" style="width: 100%;">Create Task</button>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">📅 Export Day to Calendar</div>
+        <button onclick="exportSelectedDayToICS()" class="btn-add" style="width: 100%;">Export Selected Day (.ics)</button>
       </div>
 
 
@@ -3800,22 +3794,25 @@ let loadModalStage = 'input'; // 'input' or 'confirm' stage for restore modal
 function switchPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('page-' + name).classList.add('active');
-  
+  const pageEl = document.getElementById('page-' + name);
+  if (pageEl) pageEl.classList.add('active');
+
+  // Find the nav tab button that triggers this page and mark it active
+  const selector1 = `.nav-tab[onclick="switchPage('${name}')"]`;
+  const selector2 = `.nav-tab[onclick="switchPage('${name}'); closeMobileMenu();"]`;
+  const tab = document.querySelector(selector1) || document.querySelector(selector2);
+  if (tab) tab.classList.add('active');
+
   if (name === 'flow') {
-    document.querySelectorAll('.nav-tab')[0].classList.add('active');
     renderFlowInbox();
   } else if (name === 'clock') {
-    document.querySelectorAll('.nav-tab')[1].classList.add('active');
     renderClockPage();
   } else if (name === 'calendar') {
-    document.querySelectorAll('.nav-tab')[2].classList.add('active');
     initCalendarPage();
   } else if (name === 'report') {
-    document.querySelectorAll('.nav-tab')[3].classList.add('active');
     renderReportsPage();
   } else if (name === 'help') {
-    document.querySelectorAll('.nav-tab')[4].classList.add('active');
+    // intentionally empty for help page
   }
 }
 
@@ -6167,6 +6164,11 @@ function renderFlowList() {
       } else if (taskState==='done') {
         visibleBtns += `<button class="btn" disabled><span class="btn-icon">✓</span> <span class="btn-text">Complete</span></button>`;
       }
+      
+      // Add Done button if 50% of time has been reached
+      if (canDone && taskState !== 'done') {
+        visibleBtns += `<button class="btn done-early" onclick="markDone(${t.id})" title="Mark as complete - ${Math.round((worked / t.allocSecs) * 100)}% done"><span class="btn-icon">✓</span> <span class="btn-text">Done</span></button>`;
+      }
     }
     
     // Add NOTE button as visible
@@ -7573,35 +7575,58 @@ function renderReportsPage() {
   const page = document.getElementById('page-report');
   if (!page) return;
   
-  const doneTasks = flowTasks.filter(t => t.state === 'done');
-  const runningTasks = flowTasks.filter(t => t.state === 'running');
-  const pausedTasks = flowTasks.filter(t => t.state === 'paused');
-  const idleTasks = flowTasks.filter(t => t.state === 'idle');
-  
-  const totalWorked = flowTasks.reduce((a, t) => a + totalWorkedSecs(t), 0);
-  const totalBreak = flowTasks.reduce((a, t) => a + totalBreakSecs(t), 0);
-  const totalAllocated = flowTasks.reduce((a, t) => a + t.allocSecs, 0);
-  const avgPerTask = doneTasks.length > 0 ? totalWorked / doneTasks.length : 0;
-  const completionRate = flowTasks.length > 0 ? Math.round((doneTasks.length / flowTasks.length) * 100) : 0;
-  const avgBreakPerTask = flowTasks.length > 0 ? totalBreak / flowTasks.length : 0;
-  const totalSegments = flowTasks.reduce((a, t) => a + t.segments.length, 0);
-  const totalBreaks = flowTasks.reduce((a, t) => a + t.segments.filter(s => s.type === 'break').length, 0);
-  
-  let html = `
-    <div style="padding: 20px 40px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+  // Create report container with filter tied to timer page filter
+  page.innerHTML = `
+    <div style="padding: 20px 40px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
       <div>
-        <div style="font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase;">Analytics & Reports</div>
-        <div style="font-size: 12px; color: var(--muted2); margin-top: 4px;">Generated ${new Date().toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</div>
+        <div style="font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase;">📊 Current Tasks Report</div>
+        <div style="font-size: 12px; color: var(--muted2); margin-top: 4px;">Showing tasks matching timer page filters • Generated ${new Date().toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</div>
       </div>
-      <div style="display: flex; gap: 8px;">
-        <button class="data-btn dl" onclick="exportReportJSON()" style="padding: 9px 18px;">↓ JSON</button>
-        <button class="data-btn dl" onclick="exportReportCSV()" style="padding: 9px 18px;">↓ CSV</button>
-        <button class="data-btn dl" onclick="exportReportPDF()" style="padding: 9px 18px;">📄 PDF</button>
-        <button class="data-btn dl" onclick="window.print()" style="padding: 9px 18px;">🖨 Print</button>
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
       </div>
     </div>
+    <div id="reportContentArea" style="padding: 28px 40px; max-width: 1200px;"></div>
+  `;
+  
+  const contentArea = document.getElementById('reportContentArea');
+  
+  // Use the SAME filtering as the timer page - apply both status AND date filters
+  const filteredTasks = allTasks.filter(t => {
+    // Apply the same shouldShowTask logic from timer page
+    if (t.isMinimized) return false;
     
-    <div style="padding: 28px 40px; max-width: 1200px;">`;
+    // Status/Type filter
+    let stateTypeMatch = false;
+    const taskState = getCurrentTaskState(t);
+    if (activeFilters.all) {
+      stateTypeMatch = true;
+    } else {
+      const stateMatch = activeFilters[taskState] || false;
+      const typeMatch = (t.isUntimed && activeFilters.untimed) || (!t.isUntimed && activeFilters.timed) || false;
+      stateTypeMatch = stateMatch || typeMatch;
+    }
+    
+    if (!stateTypeMatch) return false;
+    
+    // Date filter - use isTaskInDateRange from timer page
+    return isTaskInDateRange(t);
+  });
+  
+  const doneTasks = filteredTasks.filter(t => t.state === 'done');
+  const runningTasks = filteredTasks.filter(t => t.state === 'running');
+  const pausedTasks = filteredTasks.filter(t => t.state === 'paused');
+  const idleTasks = filteredTasks.filter(t => t.state === 'idle');
+  
+  const totalWorked = filteredTasks.reduce((a, t) => a + totalWorkedSecs(t), 0);
+  const totalBreak = filteredTasks.reduce((a, t) => a + totalBreakSecs(t), 0);
+  const totalAllocated = filteredTasks.reduce((a, t) => a + t.allocSecs, 0);
+  const avgPerTask = doneTasks.length > 0 ? totalWorked / doneTasks.length : 0;
+  const completionRate = filteredTasks.length > 0 ? Math.round((doneTasks.length / filteredTasks.length) * 100) : 0;
+  const avgBreakPerTask = filteredTasks.length > 0 ? totalBreak / filteredTasks.length : 0;
+  const totalSegments = filteredTasks.reduce((a, t) => a + t.segments.length, 0);
+  const totalBreaks = filteredTasks.reduce((a, t) => a + t.segments.filter(s => s.type === 'break').length, 0);
+  
+  let html = ``;
   
   if (flowTasks.length === 0) {
     html += `
@@ -7617,7 +7642,7 @@ function renderReportsPage() {
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;">
           <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
             <div style="font-size: 10px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px;">Total Tasks</div>
-            <div style="font-size: 32px; font-weight: 700;">${flowTasks.length}</div>
+            <div style="font-size: 32px; font-weight: 700;">${filteredTasks.length}</div>
             <div style="font-size: 10px; color: var(--muted2); margin-top: 6px;">across all states</div>
           </div>
           <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
@@ -7658,7 +7683,7 @@ function renderReportsPage() {
               <div style="font-size: 18px; color: var(--done); font-weight: 700;">${doneTasks.length}</div>
             </div>
             <div style="width: 100%; height: 4px; background: rgba(74,140,255,0.2); border-radius: 2px; overflow: hidden;">
-              <div style="width: ${(doneTasks.length / flowTasks.length) * 100}%; height: 100%; background: var(--done);"></div>
+              <div style="width: ${(doneTasks.length / filteredTasks.length) * 100}%; height: 100%; background: var(--done);"></div>
             </div>
           </div>
           <div style="background: var(--active-dim); border: 1px solid var(--active); border-radius: 10px; padding: 16px;">
@@ -7667,7 +7692,7 @@ function renderReportsPage() {
               <div style="font-size: 18px; color: var(--active); font-weight: 700;">${runningTasks.length}</div>
             </div>
             <div style="width: 100%; height: 4px; background: rgba(93,224,168,0.2); border-radius: 2px; overflow: hidden;">
-              <div style="width: ${(runningTasks.length / flowTasks.length) * 100}%; height: 100%; background: var(--active);"></div>
+              <div style="width: ${(runningTasks.length / filteredTasks.length) * 100}%; height: 100%; background: var(--active);"></div>
             </div>
           </div>
           <div style="background: var(--break-dim); border: 1px solid var(--break); border-radius: 10px; padding: 16px;">
@@ -7676,7 +7701,7 @@ function renderReportsPage() {
               <div style="font-size: 18px; color: var(--break); font-weight: 700;">${pausedTasks.length}</div>
             </div>
             <div style="width: 100%; height: 4px; background: rgba(245,166,35,0.2); border-radius: 2px; overflow: hidden;">
-              <div style="width: ${(pausedTasks.length / flowTasks.length) * 100}%; height: 100%; background: var(--break);"></div>
+              <div style="width: ${(pausedTasks.length / filteredTasks.length) * 100}%; height: 100%; background: var(--break);"></div>
             </div>
           </div>
           <div style="background: #1e1e24; border: 1px solid var(--border2); border-radius: 10px; padding: 16px;">
@@ -7685,33 +7710,8 @@ function renderReportsPage() {
               <div style="font-size: 18px; color: var(--muted2); font-weight: 700;">${idleTasks.length}</div>
             </div>
             <div style="width: 100%; height: 4px; background: var(--track); border-radius: 2px; overflow: hidden;">
-              <div style="width: ${(idleTasks.length / flowTasks.length) * 100}%; height: 100%; background: var(--muted2);"></div>
+              <div style="width: ${(idleTasks.length / filteredTasks.length) * 100}%; height: 100%; background: var(--muted2);"></div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ TIME DISTRIBUTION ═══ -->
-      <div style="margin-bottom: 32px;">
-        <div style="font-size: 13px; font-weight: 600; color: var(--active); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px;">⏱ Time Distribution</div>
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
-          <div style="display: flex; align-items: flex-end; gap: 12px; height: 200px; margin-bottom: 16px;">
-            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
-              <div style="width: 100%; background: var(--active); border-radius: 6px 6px 0 0; height: ${Math.max((totalWorked / (totalWorked + totalBreak)) * 180, 20)}px; position: relative; display: flex; align-items: flex-end; justify-content: center;">
-                <div style="color: var(--bg); font-size: 10px; font-weight: 700; padding: 4px; text-transform: uppercase;">${Math.round((totalWorked / (totalWorked + totalBreak)) * 100)}%</div>
-              </div>
-              <div style="font-size: 11px; color: var(--muted); margin-top: 8px; text-align: center; font-weight: 500;">Work Time<br>${fmtF(totalWorked)}</div>
-            </div>
-            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
-              <div style="width: 100%; background: var(--break); border-radius: 6px 6px 0 0; height: ${Math.max((totalBreak / (totalWorked + totalBreak)) * 180, 20)}px; position: relative; display: flex; align-items: flex-end; justify-content: center;">
-                <div style="color: var(--bg); font-size: 10px; font-weight: 700; padding: 4px; text-transform: uppercase;">${Math.round((totalBreak / (totalWorked + totalBreak)) * 100)}%</div>
-              </div>
-              <div style="font-size: 11px; color: var(--muted); margin-top: 8px; text-align: center; font-weight: 500;">Break Time<br>${fmtF(totalBreak)}</div>
-            </div>
-          </div>
-          <div style="padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted2);">
-            <strong style="color: var(--text);">Total session:</strong> ${fmtF(totalWorked + totalBreak)} 
-            <span style="margin-left: 16px;"><strong style="color: var(--text);">Work/Break ratio:</strong> ${((totalWorked / totalBreak) || 0).toFixed(1)}:1</span>
           </div>
         </div>
       </div>
@@ -7729,7 +7729,7 @@ function renderReportsPage() {
             <div>Progress</div>
           </div>`;
     
-    flowTasks.forEach(t => {
+    filteredTasks.forEach(t => {
       const worked = totalWorkedSecs(t);
       const brk = totalBreakSecs(t);
       const breakCount = t.segments.filter(s => s.type === 'break').length;
@@ -7768,7 +7768,7 @@ function renderReportsPage() {
     
     // Collect all breaks from all tasks
     let allBreaks = [];
-    flowTasks.forEach(t => {
+    filteredTasks.forEach(t => {
       t.segments.forEach((seg, segIdx) => {
         if (seg.type === 'break') {
           allBreaks.push({
@@ -7833,7 +7833,7 @@ function renderReportsPage() {
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">`;
     
     // Most productive task
-    const mostProductive = [...flowTasks].sort((a, b) => totalWorkedSecs(b) - totalWorkedSecs(a))[0];
+    const mostProductive = [...filteredTasks].sort((a, b) => totalWorkedSecs(b) - totalWorkedSecs(a))[0];
     if (mostProductive) {
       html += `
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
@@ -7871,22 +7871,6 @@ function renderReportsPage() {
         </div>
       </div>
 
-      <!-- ═══ AI PERFORMANCE ADVICE ═══ -->
-      <div style="margin-bottom: 32px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; cursor: pointer;" onclick="toggleSection('ai-advice-section')">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <span id="ai-advice-toggle" style="font-size: 18px; color: var(--active); transition: transform 0.2s; font-weight: bold; min-width: 20px;">▼</span>
-            <div style="font-size: 13px; font-weight: 600; color: var(--active); text-transform: uppercase; letter-spacing: 0.08em;">🤖 AI Performance Advice</div>
-          </div>
-          <button onclick="generateAdviceManually(); event.stopPropagation();" id="generate-advice-btn" style="padding: 6px 12px; background: var(--active); color: var(--bg); border: none; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">↻ Generate</button>
-        </div>
-        <div id="ai-advice-section" style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; min-height: 100px; display: flex; align-items: center; justify-content: center;">
-          <div id="ai-advice-container" style="width: 100%;">
-            <div style="color: var(--muted); text-align: center; font-size: 12px;">Click "Generate" to analyze your performance with AI</div>
-          </div>
-        </div>
-      </div>
-
       <!-- ═══ GEMINI API CONFIGURATION ═══ -->
       <div style="margin-bottom: 32px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; cursor: pointer;" onclick="toggleSection('api-config-section')">
@@ -7918,19 +7902,17 @@ function renderReportsPage() {
 
       <!-- ═══ EXPORT OPTIONS ═══ -->
       <div style="padding-top: 20px; border-top: 1px solid var(--border);">
-        <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; font-weight: 600;">📥 Export & Download</div>
+        <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; font-weight: 600;">📥 Download Report</div>
         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-          <button class="data-btn dl" onclick="exportReportJSON()" style="padding: 9px 16px;">↓ Full Report (JSON)</button>
-          <button class="data-btn dl" onclick="exportReportCSV()" style="padding: 9px 16px;">↓ Task Details (CSV)</button>
-          <button class="data-btn" onclick="exportDetailedReport()" style="padding: 9px 16px;">↓ Detailed Report (JSON)</button>
-          <button class="data-btn" onclick="window.print()" style="padding: 9px 16px;">🖨 Print Report</button>
+          <button class="data-btn" onclick="exportTaskBreakdownPDF()" style="padding: 9px 16px;">📋 Download Task Breakdown (PDF)</button>
         </div>
       </div>`;
   }
   
   html += `</div>
     <button type="button" class="btn btn-report" onclick="openSuggestionModal()" style="position: fixed; bottom: 22px; right: 22px; z-index: 9990; box-shadow: 0 16px 30px rgba(0,0,0,0.18);">💡 Send Feature Suggestion</button>`;
-  page.innerHTML = html;
+  
+  contentArea.innerHTML = html;
   
   // Store performance data globally for manual generation
   window.currentPerformanceData = {
@@ -8508,6 +8490,114 @@ function exportDetailedReport() {
     allBreaks: allBreaks
   };
   downloadJSON(report, 'tempow-detailed-report.json');
+}
+
+function exportTaskBreakdownPDF() {
+  // Get username and current date for filename
+  const userName = localStorage.getItem('tempow_user_name') || 'Report';
+  const today = new Date();
+  const dateStr = today.getFullYear() + '-' + 
+                  String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                  String(today.getDate()).padStart(2, '0');
+  const filename = 'TaskBreakdown_' + userName + '_' + dateStr + '.pdf';
+  
+  // Resolve theme CSS variables so PDF renders in full app colors
+  const rootStyle = getComputedStyle(document.documentElement);
+  const cssBg = (rootStyle.getPropertyValue('--bg') || '#ffffff').trim();
+  const cssText = (rootStyle.getPropertyValue('--text') || '#111111').trim();
+  const cssMuted = (rootStyle.getPropertyValue('--muted') || '#666666').trim();
+  const cssSurface2 = (rootStyle.getPropertyValue('--surface2') || '#f5f5f5').trim();
+  const cssBorder = (rootStyle.getPropertyValue('--border') || '#dddddd').trim();
+
+  // Create a temporary container with only the task breakdown table
+  const tempDiv = document.createElement('div');
+  tempDiv.style.background = cssBg;
+  tempDiv.style.color = cssText;
+  tempDiv.style.padding = '20px';
+  tempDiv.style.width = '100%';
+  
+  // Add header (use theme muted color)
+  let html = `
+    <div style="margin-bottom: 20px;">
+      <h1 style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: ${cssText};">Task Breakdown Report</h1>
+      <p style="font-size: 12px; color: ${cssMuted}; margin: 0;">Generated on ${new Date().toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'})}</p>
+    </div>
+  `;
+  
+  // Use filtered tasks from the report
+  const filteredTasks = allTasks.filter(t => {
+    if (t.isMinimized) return false;
+    let stateTypeMatch = false;
+    const taskState = getCurrentTaskState(t);
+    if (activeFilters.all) {
+      stateTypeMatch = true;
+    } else {
+      const stateMatch = activeFilters[taskState] || false;
+      const typeMatch = (t.isUntimed && activeFilters.untimed) || (!t.isUntimed && activeFilters.timed) || false;
+      stateTypeMatch = stateMatch || typeMatch;
+    }
+    if (!stateTypeMatch) return false;
+    return isTaskInDateRange(t);
+  });
+  
+  // Create table with task breakdown (use theme surface and border colors)
+  html += `
+    <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px; color: ${cssText};">
+      <thead>
+        <tr style="background: ${cssSurface2}; border-bottom: 2px solid ${cssBorder};">
+          <th style="padding: 10px; text-align: left; font-weight: 600; border-right: 1px solid ${cssBorder};">Task</th>
+          <th style="padding: 10px; text-align: center; font-weight: 600; border-right: 1px solid ${cssBorder};">Status</th>
+          <th style="padding: 10px; text-align: right; font-weight: 600; border-right: 1px solid ${cssBorder};">Worked</th>
+          <th style="padding: 10px; text-align: center; font-weight: 600; border-right: 1px solid ${cssBorder};">Breaks</th>
+          <th style="padding: 10px; text-align: right; font-weight: 600; border-right: 1px solid ${cssBorder};">Allocated</th>
+          <th style="padding: 10px; text-align: center; font-weight: 600;">Progress</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  
+  // Add each task row
+  filteredTasks.forEach((t, idx) => {
+    const worked = totalWorkedSecs(t);
+    const brk = totalBreakSecs(t);
+    const breakCount = t.segments.filter(s => s.type === 'break').length;
+    const pct = Math.round((worked / t.allocSecs) * 100);
+    const status = t.state === 'done' ? 'Done' : t.state === 'running' ? 'Running' : t.state === 'paused' ? 'Paused' : 'Idle';
+    const bgColor = idx % 2 === 0 ? '#ffffff' : '#f9f9f9';
+    const progressColor = pct >= 100 ? '#4a8cff' : pct >= 75 ? '#5de0a8' : pct >= 50 ? '#ffa500' : '#ff6b6b';
+    
+    html += `
+      <tr style="background: ${bgColor}; border-bottom: 1px solid #ddd;">
+        <td style="padding: 10px; border-right: 1px solid #ddd; font-weight: 500;">${t.name}</td>
+        <td style="padding: 10px; text-align: center; border-right: 1px solid #ddd;">${status}</td>
+        <td style="padding: 10px; text-align: right; border-right: 1px solid #ddd;">${fmtDurF(worked)}</td>
+        <td style="padding: 10px; text-align: center; border-right: 1px solid #ddd;">${breakCount}x</td>
+        <td style="padding: 10px; text-align: right; border-right: 1px solid #ddd;">${fmtDurF(t.allocSecs)}</td>
+        <td style="padding: 10px; text-align: center; font-weight: 600; color: ${progressColor};">${pct}%</td>
+      </tr>
+    `;
+  });
+  
+  html += `
+      </tbody>
+    </table>
+  `;
+  
+  tempDiv.innerHTML = html;
+  document.body.appendChild(tempDiv);
+  
+  // Generate PDF using html2pdf
+  const opt = {
+    margin: 10,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+  };
+  
+  html2pdf().set(opt).from(tempDiv).save().then(() => {
+    document.body.removeChild(tempDiv);
+  });
 }
 
 /* ═══════════════════════════════════════════
@@ -9712,6 +9802,91 @@ function getTasksForDate(date) {
     if (Array.isArray(task.scheduledDates) && task.scheduledDates.includes(dateStr)) return true;
     return false;
   });
+}
+
+function exportSelectedDayToICS() {
+  const tasks = getTasksForDate(calendarCurrentDate);
+  if (!tasks || tasks.length === 0) {
+    alert('No tasks are scheduled for the selected day.');
+    return;
+  }
+
+  const date = calendarCurrentDate;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const filename = `tempow-calendar-${year}${month}${day}.ics`;
+  const ics = buildICSForDate(tasks, date);
+  downloadTextFile(ics, filename, 'text/calendar;charset=utf-8');
+}
+
+function buildICSForDate(tasks, date) {
+  const now = new Date();
+  const dtStamp = formatICSTimestamp(now);
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  let ics = '';
+  ics += 'BEGIN:VCALENDAR\r\n';
+  ics += 'VERSION:2.0\r\n';
+  ics += 'PRODID:-//Tempow App//EN\r\n';
+  ics += 'CALSCALE:GREGORIAN\r\n';
+  ics += 'METHOD:PUBLISH\r\n';
+
+  tasks.forEach(task => {
+    const startDate = new Date(date);
+    const startHour = Number(task.hour || 0);
+    startDate.setHours(startHour, 0, 0, 0);
+    const durationMinutes = Number(task.duration || Math.round((task.allocSecs || 0) / 60) || 60);
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+    const uid = `tempow-${task.id || Math.random().toString(36).slice(2)}@tempow.app`;
+    const summary = escapeICSText(task.name || 'Task');
+    const notes = task.notes || task.note || '';
+    const description = escapeICSText(`Task: ${task.name || 'Untitled'}\nDuration: ${durationMinutes} min\nNotes: ${notes}`);
+    const location = escapeICSText(task.location || '');
+
+    ics += 'BEGIN:VEVENT\r\n';
+    ics += `UID:${uid}\r\n`;
+    ics += `DTSTAMP:${dtStamp}\r\n`;
+    ics += `DTSTART:${formatICSTimestamp(startDate, false)}\r\n`;
+    ics += `DTEND:${formatICSTimestamp(endDate, false)}\r\n`;
+    ics += `SUMMARY:${summary}\r\n`;
+    ics += `DESCRIPTION:${description}\r\n`;
+    if (location) ics += `LOCATION:${location}\r\n`;
+    ics += 'STATUS:CONFIRMED\r\n';
+    ics += 'TRANSP:OPAQUE\r\n';
+    ics += 'END:VEVENT\r\n';
+  });
+
+  ics += 'END:VCALENDAR\r\n';
+  return ics;
+}
+
+function formatICSTimestamp(date, includeTime = true) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return includeTime ? `${year}${month}${day}T${hours}${minutes}${seconds}` : `${year}${month}${day}T${hours}${minutes}00`;
+}
+
+function escapeICSText(text) {
+  return String(text || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/\r/g, '').replace(/,/g, '\\,').replace(/;/g, '\\;');
+}
+
+function downloadTextFile(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 300);
 }
 
 function renderTodaysTasks() {
