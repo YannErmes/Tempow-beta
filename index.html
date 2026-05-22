@@ -7921,7 +7921,7 @@ function renderReportsPage() {
       <div style="padding-top: 20px; border-top: 1px solid var(--border);">
         <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; font-weight: 600;">📥 Download Report</div>
         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-          <button class="data-btn" onclick="exportTaskBreakdownPDF()" style="padding: 9px 16px;">📋 Download Task Breakdown (PDF)</button>
+          <button class="data-btn" onclick="printReportToPDF()" style="padding: 9px 16px;">🖨️ Print Full Report (PDF)</button>
         </div>
       </div>`;
   }
@@ -8603,7 +8603,7 @@ function exportTaskBreakdownPDF() {
   tempDiv.innerHTML = html;
   document.body.appendChild(tempDiv);
   
-  // Generate PDF using html2pdf
+  // Generate PDF using html2pdf but produce a Blob and force-download it
   const opt = {
     margin: 10,
     filename: filename,
@@ -8611,10 +8611,59 @@ function exportTaskBreakdownPDF() {
     html2canvas: { scale: 2 },
     jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
   };
-  
-  html2pdf().set(opt).from(tempDiv).save().then(() => {
+
+  // Use the library to render to jsPDF, get the pdf instance, convert to Blob and download via anchor.
+  try {
+    html2pdf().set(opt).from(tempDiv).toPdf().get('pdf').then(pdf => {
+      const blob = pdf.output('blob');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      document.body.removeChild(tempDiv);
+    }).catch(err => {
+      document.body.removeChild(tempDiv);
+      console.error('PDF generation failed:', err);
+      alert('PDF generation failed: ' + (err && err.message ? err.message : String(err)));
+    });
+  } catch(e) {
     document.body.removeChild(tempDiv);
-  });
+    console.error('PDF generation exception:', e);
+    alert('PDF generation failed: ' + e.message);
+  }
+}
+
+function printReportToPDF() {
+  // Add print styles that hide the nav and other UI elements
+  const style = document.createElement('style');
+  style.id = 'print-styles';
+  style.textContent = `
+    @media print {
+      .app-nav { display: none !important; }
+      #offline-banner { display: none !important; }
+      button { display: none !important; }
+      .nav-tab { display: none !important; }
+      .btn { display: none !important; }
+      body { background: white; color: black; }
+      #page-report { display: block !important; }
+      .page { display: none !important; }
+      #page-report { display: block !important; }
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Trigger the print dialog
+  window.print();
+  
+  // Remove print styles after a short delay
+  setTimeout(() => {
+    const printStyle = document.getElementById('print-styles');
+    if (printStyle) printStyle.remove();
+  }, 100);
 }
 
 /* ═══════════════════════════════════════════
