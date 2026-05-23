@@ -614,7 +614,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 
 .bar-outer { position: relative; height: 10px; margin: 0 20px; }
 .bar-track { position: absolute; inset: 0; background: var(--track); border-radius: 2px; overflow: hidden; }
-.bar-active { position: absolute; left: 0; top: 0; height: 100%; background: var(--active); transition: width 0.9s linear; }
+.bar-active { position: absolute; left: 0; top: 0; height: 100%; background: var(--active); transition: width 2s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
 .task-card.done .bar-active { background: var(--done); }
 .brk-seg { position: absolute; top: 0; height: 10px; background: var(--break); cursor: pointer; z-index: 10; transition: filter 0.15s; }
 .brk-seg:hover { filter: brightness(1.3); }
@@ -666,7 +666,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 .stat-box-value { font-size: 24px; font-weight: 700; color: var(--active); }
 .stat-box-sub { font-size: 10px; color: var(--muted2); margin-top: 4px; }
 .progress-bar-container { width: 100%; background: var(--track); border-radius: 4px; height: 6px; overflow: hidden; margin: 8px 0; }
-.progress-bar-fill { height: 100%; background: var(--active); transition: width 0.3s ease; }
+.progress-bar-fill { height: 100%; background: var(--active); transition: width 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
 
 /* Split point styles - draggable cursors on progress bar */
 .split-point { 
@@ -2981,6 +2981,7 @@ body.text-mode .btn .btn-text {
       </select>
       <button type="button" class="btn-report" onclick="console.log('Backup clicked'); openSyncModal();" style="background: rgba(93,224,168,0.12); border-color: var(--active); color: var(--active);">☁ Back Up</button>
       <button type="button" class="btn-report" onclick="console.log('Restore clicked'); openLoadFromCloudModal();" style="background: rgba(93,224,168,0.12); border-color: var(--active); color: var(--active);">↓ Restore</button>
+      <button type="button" id="syncElapsedBtn" class="btn-report" onclick="syncElapsedTime();" style="background: rgba(93,224,168,0.12); border-color: var(--active); color: var(--active);">↻ Sync</button>
       <span id="syncStatusInline" style="font-size:10px;color:var(--muted);"></span>
       <span class="save-indicator" id="flowSaveIndicator">✓ Saved</span>
       <span style="font-size:10px;color:var(--muted);" id="flowLastSaved"></span>
@@ -6106,6 +6107,44 @@ function addNewSplit(taskId) {
   openSplitModal(taskId);
 }
 
+// ── Smooth bar animation (independent of render cycle) ────────────────────────
+function updateProgressBarsSmooth() {
+  const currentDateStr = getContextDateStr();
+  
+  // Find all running/paused tasks and smoothly update their bars
+  flowTasks.forEach(t => {
+    if (t.isUntimed) return;
+    
+    const taskState = getTaskStateForDate(t, currentDateStr);
+    if (taskState !== 'running' && taskState !== 'paused') return;
+    
+    const card = document.getElementById('flow-card-' + t.id);
+    if (!card) return;
+    
+    const barOuter = card.querySelector('.bar-outer');
+    if (!barOuter) return;
+    
+    const worked = totalWorkedSecs(t, currentDateStr);
+    const total = Math.max(t.allocSecs, 1);
+    const percentage = Math.min((worked / total) * 100, 100);
+    
+    // Update active work bar width smoothly
+    const workBars = barOuter.querySelectorAll('div[style*="background"]');
+    if (workBars.length > 0) {
+      workBars.forEach(bar => {
+        const style = bar.getAttribute('style') || '';
+        if (style.includes('var(--active)') || style.includes('var(--done)')) {
+          const currentWidth = parseFloat(bar.style.width);
+          const targetWidth = percentage;
+          if (Math.abs(currentWidth - targetWidth) > 0.1) {
+            bar.style.width = targetWidth + '%';
+          }
+        }
+      });
+    }
+  });
+}
+
 // ── Live update (no re-render) ────────────────────────
 function updateLiveFlow() {
   const currentDateStr = getContextDateStr();
@@ -8971,10 +9010,10 @@ async function syncElapsedTime(overrideElapsedSeconds) {
   renderFlowList();
   saveFlowData();
 
-  const syncButton = document.querySelector('.data-bar .data-btn[onclick="syncElapsedTime()"]');
+  const syncButton = document.getElementById('syncElapsedBtn');
   if (syncButton) {
     syncButton.textContent = '↻ Synced';
-    setTimeout(() => { if (syncButton) syncButton.textContent = '↻ Sync elapsed'; }, 1600);
+    setTimeout(() => { if (syncButton) syncButton.textContent = '↻ Sync'; }, 1600);
   }
 }
 
@@ -9752,6 +9791,16 @@ function restoreCollapsibleStates() {
   } catch (e) {
     console.error('Init error in loadMinimizedPanelState:', e);
   }
+  
+  // Auto-sync elapsed time every 5 seconds
+  setInterval(() => {
+    syncElapsedTime();
+  }, 5000);
+  
+  // Smooth progress bar animation every 200ms for continuous visual feedback
+  setInterval(() => {
+    updateProgressBarsSmooth();
+  }, 200);
   
   // Auto-save task data every 5 seconds
   // ===== SAFE PERSISTENCE: Only saves if data has been successfully loaded =====
