@@ -1804,6 +1804,8 @@ body.text-mode .btn .btn-text {
 .btn.start:hover  { background:var(--active-dim); }
 .btn.pause  { border-color:var(--break); color:var(--break); }
 .btn.pause:hover  { background:var(--break-dim); }
+.btn.stop   { border-color:var(--danger); color:var(--danger); }
+.btn.stop:hover { background:var(--danger-dim); }
 .btn.resume { border-color:var(--active); color:var(--active); }
 .btn.resume:hover { background:var(--active-dim); }
 .btn.del    { border-color:transparent; color:var(--muted); margin-left:auto; }
@@ -5734,6 +5736,12 @@ function _stopTaskPermanently(id, note) {
   renderFlowList();
 }
 
+function stopTask(id) {
+  _stopTaskPermanently(id, 'Stopped');
+  saveFlowData();
+  closeDropdownAfterAction();
+}
+
 // Prompt and create a permanent break for a task (UI helper)
 function openPermanentBreak(id) {
   closeDropdownAfterAction();
@@ -6381,6 +6389,7 @@ function renderFlowList() {
         visibleBtns += `<button class="btn start" onclick="startTask(${t.id})"><span class="btn-icon">▶</span> <span class="btn-text">Start</span></button>`;
       } else if (taskState==='running') {
         visibleBtns += `<button class="btn pause" onclick="pauseTask(${t.id})"><span class="btn-icon">⏸</span> <span class="btn-text">Pause</span></button>`;
+        visibleBtns += `<button class="btn stop" onclick="stopTask(${t.id})"><span class="btn-icon">⏹</span> <span class="btn-text">Stop</span></button>`;
       } else if (taskState==='paused') {
         visibleBtns += `<button class="btn resume" onclick="resumeTask(${t.id})"><span class="btn-icon">▶</span> <span class="btn-text">Resume</span></button>`;
       } else if (taskState==='done') {
@@ -6402,9 +6411,10 @@ function renderFlowList() {
     // Add permanent break option for running/paused tasks
     if ((taskState==='running' || taskState==='paused') && (!t.isUntimed)) {
       dropdownItems += `<button class="dropdown-item" onclick="openPermanentBreak(${t.id})"><span class="btn-icon">⏸</span> Perm Break</button>`;
+      if (taskState === 'running') {
+        dropdownItems += `<button class="dropdown-item" onclick="stopTask(${t.id})"><span class="btn-icon">⏹</span> Stop</button>`;
+      }
     }
-    
-    // Add done early if available
     if (canDone && !t.isUntimed) {
       dropdownItems += `<button class="dropdown-item" onclick="markDone(${t.id})"><span class="btn-icon">✓</span> Done Early</button>`;
     }
@@ -8131,8 +8141,7 @@ function renderReportsPage() {
       </div>`;
   }
   
-  html += `</div>
-    <button type="button" class="btn btn-report" onclick="openSuggestionModal()" style="position: fixed; bottom: 22px; right: 22px; z-index: 9990; box-shadow: 0 16px 30px rgba(0,0,0,0.18);">💡 Send Feature Suggestion</button>`;
+  html += `</div>`;
   
   contentArea.innerHTML = html;
   
@@ -8857,10 +8866,10 @@ function renderValuesPage() {
       <div style="background: linear-gradient(135deg, var(--active-dim) 0%, rgba(79,174,231,0.06) 100%); border: 2px solid var(--active); border-radius: 12px; padding: 32px; margin-bottom: 40px; text-align: center;">
         <div style="font-size: 24px; margin-bottom: 16px;">⏳</div>
         <p style="font-size: 16px; font-weight: 600; color: var(--active); line-height: 1.6; margin: 0;">
-          "If you don't sacrifice for your dream, your dream becomes a sacrifice."
+          The most important thing we have is our <strong>time</strong>. Tempow helps you make that time count.
         </p>
         <p style="font-size: 14px; color: var(--text); line-height: 1.6; margin: 16px 0 0 0;">
-          The most important thing we have is our <strong>time</strong>. That's why Tempow is here—to help you put in the work that matters.
+          Don't argue with people. Let your work speak. When the results are strong, recognition becomes inevitable.
         </p>
       </div>
 
@@ -8868,57 +8877,57 @@ function renderValuesPage() {
       <div style="margin-bottom: 36px;">
         <h2 style="font-size: 14px; font-weight: 600; color: var(--text); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 12px 0;">Why Our Design Choices Exist</h2>
         <p style="font-size: 13px; color: var(--muted2); line-height: 1.6; margin: 0;">
-          Some Tempow features look like restrictions. They're not. They're guardrails designed to keep you focused on what matters.
+          The best response to disagreement isn’t another argument. It’s better work. Tempow is built so your effort becomes the clearest answer.
         </p>
       </div>
 
-      <!-- ═══ VALUE 1: FIRST INSTINCT ═══ -->
+      <!-- ═══ VALUE 1: WORK SPEAKS ═══ -->
       <div style="background: var(--active-dim); border: 1px solid var(--active); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
         <div style="display: flex; align-items: flex-start; gap: 12px;">
-          <div style="font-size: 28px; min-width: 40px;">💭</div>
+          <div style="font-size: 28px; min-width: 40px;">💬</div>
           <div style="flex: 1;">
-            <h3 style="font-size: 15px; font-weight: 600; color: var(--active); margin: 0 0 8px 0;">Your First Instinct Is Best</h3>
+            <h3 style="font-size: 15px; font-weight: 600; color: var(--active); margin: 0 0 8px 0;">Let Your Work Speak</h3>
             <p style="font-size: 13px; color: var(--text); line-height: 1.6; margin: 0;">
-              You can't change duration because your first estimate is your truest assessment. Any changes later are influenced by optimism bias, not clearer thinking.
+              If people don't agree with you, don't argue. Use your time on work that proves the point instead. The results should do the talking.
             </p>
           </div>
         </div>
       </div>
 
-      <!-- ═══ VALUE 2: ACCOUNTABILITY ═══ -->
+      <!-- ═══ VALUE 2: PROOF OVER PROMISE ═══ -->
       <div style="background: var(--break-dim); border: 1px solid var(--break); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
         <div style="display: flex; align-items: flex-start; gap: 12px;">
-          <div style="font-size: 28px; min-width: 40px;">⚖️</div>
+          <div style="font-size: 28px; min-width: 40px;">🧱</div>
           <div style="flex: 1;">
-            <h3 style="font-size: 15px; font-weight: 600; color: var(--break); margin: 0 0 8px 0;">Accountability Over Comfort</h3>
+            <h3 style="font-size: 15px; font-weight: 600; color: var(--break); margin: 0 0 8px 0;">Proof Over Promise</h3>
             <p style="font-size: 13px; color: var(--text); line-height: 1.6; margin: 0;">
-              25% extension cap and 50% completion threshold force you to finish what you start instead of endlessly postponing. Discomfort is the point.
+              You don't win people over with talk alone. You win them with work, consistency, and real results. Tempow keeps your focus on that.
             </p>
           </div>
         </div>
       </div>
 
-      <!-- ═══ VALUE 3: FOCUS ═══ -->
+      <!-- ═══ VALUE 3: RESULTS MATTER ═══ -->
       <div style="background: rgba(93,224,168,0.08); border: 1px solid rgba(93,224,168,0.3); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
         <div style="display: flex; align-items: flex-start; gap: 12px;">
           <div style="font-size: 28px; min-width: 40px;">🎯</div>
           <div style="flex: 1;">
-            <h3 style="font-size: 15px; font-weight: 600; color: var(--text); margin: 0 0 8px 0;">Minimal = Maximum Focus</h3>
+            <h3 style="font-size: 15px; font-weight: 600; color: var(--text); margin: 0 0 8px 0;">Results Matter Most</h3>
             <p style="font-size: 13px; color: var(--text); line-height: 1.6; margin: 0;">
-              No flashy UI, animations, or distractions. We stay stark and utilitarian because your focus matters more than our polish.
+              The effort you put in is the strongest argument. When your work is solid, disagreement becomes harder to maintain.
             </p>
           </div>
         </div>
       </div>
 
-      <!-- ═══ VALUE 4: PRICING ═══ -->
+      <!-- ═══ VALUE 4: INEVITABLE RECOGNITION ═══ -->
       <div style="background: var(--done-dim); border: 1px solid var(--done); border-radius: 12px; padding: 20px; margin-bottom: 40px;">
         <div style="display: flex; align-items: flex-start; gap: 12px;">
-          <div style="font-size: 28px; min-width: 40px;">💰</div>
+          <div style="font-size: 28px; min-width: 40px;">🏁</div>
           <div style="flex: 1;">
-            <h3 style="font-size: 15px; font-weight: 600; color: var(--done); margin: 0 0 8px 0;">Free Forever (Early Users)</h3>
+            <h3 style="font-size: 15px; font-weight: 600; color: var(--done); margin: 0 0 8px 0;">Inevitable Recognition</h3>
             <p style="font-size: 13px; color: var(--text); line-height: 1.6; margin: 0;">
-              Using Tempow in 2025–2026? You're locked in free forever. Early adopters matter to us.
+              When you respect your time and let your work do the arguing, good results eventually become undeniable.
             </p>
           </div>
         </div>
@@ -8940,12 +8949,31 @@ function renderValuesPage() {
       </div>
 
       <!-- ═══ COMMUNITY NOTE ═══ -->
-      <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center;">
+      <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 20px;">
         <p style="font-size: 12px; color: var(--muted); line-height: 1.6; margin: 0;">
           Built by a small team. Your feedback shapes our future.
         </p>
       </div>
 
+      <!-- ═══ COMMUNITY THANKS ═══ -->
+      <div style="background: rgba(79,174,231,0.08); border: 1px solid rgba(79,174,231,0.25); border-radius: 12px; padding: 22px;">
+        <h3 style="font-size: 14px; font-weight: 600; color: var(--active); margin: 0 0 10px 0;">Community Acknowledgements</h3>
+        <p style="font-size: 13px; color: var(--text); line-height: 1.7; margin: 0 0 10px 0;">
+          Thanks to Mr Mohammed Ali for his note and edit recommendations on the timer page.
+        </p>
+        <p style="font-size: 13px; color: var(--text); line-height: 1.7; margin: 0 0 10px 0;">
+          Thanks to Mr Yasser for all the great calendar page ideas.
+        </p>
+        <p style="font-size: 13px; color: var(--text); line-height: 1.7; margin: 0 0 10px 0;">
+          Thanks to Mr Perry for the report page idea and the detailed task breakdown table.
+        </p>
+        <p style="font-size: 13px; color: var(--text); line-height: 1.7; margin: 0 0 10px 0;">
+          Special thanks to Farah for the timer page precision reminder, Samir for the report filter flow, Leila for the calendar task card clarity, and Omar for improving the task summary layout.
+        </p>
+        <p style="font-size: 13px; color: var(--muted2); line-height: 1.7; margin: 0;">
+          Thanks to all the other community members who chose to keep their name private or anonymous. Your ideas matter and keep Tempow moving forward.
+        </p>
+      </div>
 
     </div>
   `;
