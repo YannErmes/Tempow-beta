@@ -4710,19 +4710,21 @@ function loadMinimizedPanelState() {
 // ║ NEW FEATURE: ESTIMATED COMPLETION TIME                        ║
 // ║ This function calculates when your task will be done          ║
 // ╚════════════════════════════════════════════════════════════════╝
-function getEstimatedEndTime(t, dateStr = null) {
+function getEstimatedEndMs(t, dateStr = null) {
   const taskState = dateStr ? getTaskStateForDate(t, dateStr) : (t.state || 'idle');
-  if (taskState !== 'running') return null;
-  const worked = getRealWorkedSecs(t, dateStr);
-  const remaining = Math.max(t.allocSecs - worked, 0);
-  if (remaining === 0) return null;
+  if (taskState === 'idle' || taskState === 'done') return null;
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
   const firstWorkStartTs = segments.reduce((min, seg) => {
     if (seg.type !== 'work' || !seg.startTs) return min;
     return min === null || seg.startTs < min ? seg.startTs : min;
   }, null);
   const startMs = firstWorkStartTs || Date.now();
-  const endMs = startMs + (t.allocSecs * 1000);
+  return startMs + (t.allocSecs * 1000);
+}
+
+function getEstimatedEndTime(t, dateStr = null) {
+  const endMs = getEstimatedEndMs(t, dateStr);
+  if (!endMs) return null;
   const endDate = new Date(endMs);
   return endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
@@ -5978,8 +5980,8 @@ function playDing() {
 // Visual RAF-driven loop for smooth updates synchronized to paint
 let visualLoopId = null;
 let visualLastTs = 0;
-// Debug overlay toggle (set true during verification)
-const _debugVisualOverlay = true;
+// Debug overlay toggle (disabled in production)
+const _debugVisualOverlay = false;
 
 function ensureDebugOverlay() {
   if (!document) return;
@@ -6002,7 +6004,11 @@ function ensureDebugOverlay() {
 }
 
 function updateDebugOverlay() {
-  if (!_debugVisualOverlay) return;
+  if (!_debugVisualOverlay) {
+    const el = document.getElementById('debugVisualOverlay');
+    if (el) el.remove();
+    return;
+  }
   ensureDebugOverlay();
   const el = document.getElementById('debugVisualOverlay');
   if (!el) return;
@@ -6311,12 +6317,15 @@ function updateLiveFlow() {
     const worked = getRealWorkedSecs(t, currentDateStr), brk = getRealBreakSecs(t, currentDateStr);
     const live = liveSegment(t, currentDateStr);
     const taskState = getCurrentTaskState(t);
+    const estimatedEndMs = getEstimatedEndMs(t, currentDateStr);
+    const now = Date.now();
+    const isPastEnd = estimatedEndMs !== null && now >= estimatedEndMs;
 
     if (taskState === 'running') {
-      if (worked >= t.allocSecs) {
+      if (worked >= t.allocSecs || isPastEnd) {
         if (live) {
-          live.secs = worked;
-          live.endTs = Date.now();
+          live.secs = Math.floor((now - (live.startTs || now)) / 1000);
+          live.endTs = now;
         }
         setCurrentTaskState(t, 'done');
         autoSyncCompletedTask(t);
@@ -6338,6 +6347,16 @@ function updateLiveFlow() {
         estEl.textContent = estTime || '—';
       }
     } else if (taskState === 'paused' && live) {
+      if (isPastEnd) {
+        live.secs = Math.floor((now - (live.startTs || now)) / 1000);
+        live.endTs = now;
+        setCurrentTaskState(t, 'done');
+        autoSyncCompletedTask(t);
+        playDing();
+        showDoneBanner(t.name);
+        rerender = true;
+        return;
+      }
       if (live.breakLimitSecs>0 && !live.overrun) {
         const left = live.breakLimitSecs - live.secs;
         digs.textContent = fmtF(Math.max(left,0)); lbl.textContent = 'break left';
