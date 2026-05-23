@@ -1286,6 +1286,16 @@ body.text-mode .btn .btn-text {
   box-shadow: 0 0 0 1px rgba(93, 224, 168, 0.18);
 }
 
+.calendar-week-day.filtered-day,
+.calendar-day-cell.filtered-day {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px rgba(255, 94, 108, 0.24);
+}
+
+.calendar-day-cell.filtered-day {
+  outline: 2px solid rgba(255, 94, 108, 0.22);
+}
+
 .calendar-week-day-header {
   display: flex;
   justify-content: space-between;
@@ -2855,6 +2865,9 @@ body.text-mode .btn .btn-text {
     <button class="nav-tab" onclick="switchPage('report')">
       📊 Reports
     </button>
+    <button class="nav-tab" onclick="switchPage('values')">
+      💎 Our Values
+    </button>
   </div>
   <button class="hamburger-menu" id="hamburgerMenu" onclick="toggleMobileMenu()">
     <span></span>
@@ -2874,6 +2887,9 @@ body.text-mode .btn .btn-text {
   </button>
   <button class="nav-tab" onclick="switchPage('report'); closeMobileMenu();">
     📊 Reports
+  </button>
+  <button class="nav-tab" onclick="switchPage('values'); closeMobileMenu();">
+    💎 Our Values
   </button>
 </div>
 
@@ -3196,6 +3212,11 @@ body.text-mode .btn .btn-text {
 <div class="page" id="page-report"></div>
 
 <!-- ══════════════════════════════════════════
+     PAGE 4 — OUR VALUES
+══════════════════════════════════════════ -->
+<div class="page" id="page-values"></div>
+
+<!-- ══════════════════════════════════════════
      PAGE 3A — CALENDAR
 ══════════════════════════════════════════ -->
 <div class="page" id="page-calendar">
@@ -3230,6 +3251,31 @@ body.text-mode .btn .btn-text {
         <div id="calendarSearchResults" class="tasks-list"><div style="color: var(--muted); font-size: 12px; text-align: center; padding: 16px;">Search calendar tasks by name to see matching dates and times.</div></div>
       </div>
       <div class="sidebar-section">
+        <div class="sidebar-title">📅 Day Filters</div>
+        <div style="display: grid; gap: 10px; padding-top: 4px;">
+          <select id="calendarDayFilterMetricSelect" class="filter-dropdown" onchange="updateCalendarDayFilterForm()">
+            <option value="hours">Hours</option>
+            <option value="tasks">Tasks</option>
+          </select>
+          <select id="calendarDayFilterOperatorSelect" class="filter-dropdown" onchange="updateCalendarDayFilterForm()">
+            <option value="none">No filter</option>
+            <option value="less">Less than</option>
+            <option value="more">More than</option>
+            <option value="equal">Exactly</option>
+            <option value="between">Between</option>
+          </select>
+          <div id="calendarDayFilterValueInputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <input id="calendarDayFilterValue" type="number" min="0" step="0.25" placeholder="Value" class="filter-dropdown" />
+            <input id="calendarDayFilterValueTo" type="number" min="0" step="0.25" placeholder="and" class="filter-dropdown" style="display:none" />
+          </div>
+          <button class="clock-btn" onclick="applyCalendarDayFilter()" style="width: 100%;">Apply filter</button>
+          <button class="clock-btn ghost" onclick="clearCalendarDayFilter()" style="width: 100%;">Clear filter</button>
+          <div id="calendarDayFilterResults" class="tasks-list" style="min-height: 86px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; text-align: center; padding: 12px;">
+            Choose a metric, operator, and value to highlight matching days.
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-section">
         <div class="sidebar-title">➕ Add Task to Calendar</div>
         <button onclick="openCalendarTaskModal()" class="btn-add" style="width: 100%;">Create Task</button>
       </div>
@@ -3258,6 +3304,65 @@ body.text-mode .btn .btn-text {
     </div>
   </div>
 
+  <!-- Day Details Modal (Long Press) -->
+  <div class="modal-bg" id="dayDetailsModal">
+    <div class="modal" style="width: 420px;">
+      <h2 id="dayDetailsDate" style="margin-bottom: 16px;"></h2>
+      <div id="dayDetailsTotalHours" style="background: var(--active-dim); border: 1px solid var(--active); border-radius: 10px; padding: 12px; margin-bottom: 16px; text-align: center;">
+        <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">Total Work Time</div>
+        <div style="font-size: 20px; font-weight: 600; color: var(--active);" id="dayDetailsTotalText">0h 0m</div>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 12px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 8px;">Tasks</label>
+        <div id="dayDetailsTasksList" style="max-height: 300px; overflow-y: auto;"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeDayDetailsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Calendar Task Modal -->
+  <div class="modal-bg" id="editCalendarTaskModal">
+    <div class="modal" style="width: 420px;">
+      <h2>Edit Task</h2>
+      <div class="field">
+        <label>Task Name</label>
+        <input id="editCalTaskName" type="text" placeholder="Enter task name" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+      </div>
+      <div class="field">
+        <label>Start Time</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="time" id="editCalTaskTime" value="09:00" style="padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text);" />
+          <span id="editCalTaskTimeLabel" style="color:var(--muted); font-size:13px; min-width:72px; text-align:left;"></span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeEditCalendarTaskModal()">Cancel</button>
+        <button class="btn-confirm" onclick="saveEditedCalendarTask()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send Task to Date Modal -->
+  <div class="modal-bg" id="sendTaskToDateModal">
+    <div class="modal" style="width: 420px;">
+      <h2>Send Task to Another Date</h2>
+      <div class="field">
+        <label>Task Name</label>
+        <div id="sendTaskToDateName" style="padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-weight: 600;"></div>
+      </div>
+      <div class="field">
+        <label>Select Date</label>
+        <input type="date" id="sendTaskToDatePicker" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeSendTaskToDateModal()">Cancel</button>
+        <button class="btn-confirm" onclick="sendTaskToDate()">Send</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Calendar Task Modal -->
   <div class="modal-bg" id="calendarTaskModal">
     <div class="modal" style="width: 500px;">
@@ -3275,8 +3380,11 @@ body.text-mode .btn .btn-text {
         <div id="calSelectedDates" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;"></div>
       </div>
       <div class="field">
-        <label>Start Time (Hour)</label>
-        <input type="number" id="calTaskHour" min="0" max="23" placeholder="9" value="9">
+        <label>Start Time</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="time" id="calTaskTime" value="09:00" style="padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text);" />
+          <span id="calTaskTimeLabel" style="color:var(--muted); font-size:13px; min-width:72px; text-align:left;"></span>
+        </div>
       </div>
       <div class="field">
         <label>Duration</label>
@@ -3393,15 +3501,10 @@ body.text-mode .btn .btn-text {
       <label style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Schedule to calendar (optional)</label>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
         <input type="date" id="inp-schedule-date" onfocus="this.showPicker?.()" onkeydown="event.preventDefault()" style="padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text);" />
-        <select id="inp-schedule-hour" style="padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text);">
-          <option value="">Select hour...</option>
-          <option value="0">12:00 AM</option><option value="1">1:00 AM</option><option value="2">2:00 AM</option><option value="3">3:00 AM</option>
-          <option value="4">4:00 AM</option><option value="5">5:00 AM</option><option value="6">6:00 AM</option><option value="7">7:00 AM</option>
-          <option value="8">8:00 AM</option><option value="9" selected>9:00 AM</option><option value="10">10:00 AM</option><option value="11">11:00 AM</option>
-          <option value="12">12:00 PM</option><option value="13">1:00 PM</option><option value="14">2:00 PM</option><option value="15">3:00 PM</option>
-          <option value="16">4:00 PM</option><option value="17">5:00 PM</option><option value="18">6:00 PM</option><option value="19">7:00 PM</option>
-          <option value="20">8:00 PM</option><option value="21">9:00 PM</option><option value="22">10:00 PM</option><option value="23">11:00 PM</option>
-        </select>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="time" id="inp-schedule-time" value="09:00" style="padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text);" />
+          <span id="inpScheduleTimeLabel" style="color:var(--muted); font-size:13px; min-width:72px; text-align:left;"></span>
+        </div>
       </div>
     </div>
     <div class="modal-actions">
@@ -3827,6 +3930,8 @@ function switchPage(name) {
     initCalendarPage();
   } else if (name === 'report') {
     renderReportsPage();
+  } else if (name === 'values') {
+    renderValuesPage();
   } else if (name === 'help') {
     // intentionally empty for help page
   }
@@ -3903,6 +4008,7 @@ function addToTray(taskId, source) {
       completedAt: t.completedAt,
       scheduledDate: t.scheduledDate,
       scheduledHour: t.scheduledHour,
+      scheduledMinute: t.scheduledMinute || t.minute || 0,
       breaks: t.breaks ? JSON.parse(JSON.stringify(t.breaks)) : []
     });
   } else {
@@ -4634,14 +4740,17 @@ function openModal() {
   document.getElementById('addTaskModal').classList.add('open'); 
   document.getElementById('inp-name').focus();
   document.getElementById('inp-schedule-date').valueAsDate = new Date();
+  document.getElementById('inp-schedule-time').value = '09:00';
   switchTaskType('timed');
   updateDurationDisplay();
+  // Update 12-hour labels
+  updateTimeLabels();
 }
 function closeModal() { 
   document.getElementById('addTaskModal').classList.remove('open'); 
   document.getElementById('inp-name').value=''; 
   document.getElementById('inp-schedule-date').value='';
-  document.getElementById('inp-schedule-hour').value='9';
+  document.getElementById('inp-schedule-time').value='09:00';
   document.getElementById('inp-dur-hours').value='0';
   document.getElementById('inp-dur-minutes').value='25';
 }
@@ -4716,7 +4825,15 @@ function addFlowTask() {
   }
   
   const scheduleDate = document.getElementById('inp-schedule-date').value;
-  const scheduleHour = document.getElementById('inp-schedule-hour').value;
+  const scheduleTime = document.getElementById('inp-schedule-time') ? document.getElementById('inp-schedule-time').value : '';
+  // scheduleTime is HH:MM - parse hour and minute
+  let scheduleHour = '';
+  let scheduleMinute = 0;
+  if (scheduleTime) {
+    const parts = scheduleTime.split(':');
+    scheduleHour = parts[0] || '';
+    scheduleMinute = parseInt(parts[1], 10) || 0;
+  }
   
   const taskObj = { 
     id: Date.now() + Math.random(),
@@ -4735,12 +4852,13 @@ function addFlowTask() {
     // Add with scheduling info to the unified task list
     taskObj.scheduledDate = scheduleDate;
     taskObj.scheduledHour = parseInt(scheduleHour);
+    taskObj.scheduledMinute = parseInt(scheduleMinute) || 0;
     allTasks.push(taskObj);
     flowTasks = allTasks;  // Sync
     calendarTasks = allTasks;  // Sync
     hasManualTaskChange = true;
     saveFlowData();
-    alert(`Task "${name}" scheduled to calendar on ${new Date(scheduleDate).toLocaleDateString()} at ${String(parseInt(scheduleHour)).padStart(2, '0')}:00`);
+    alert(`Task "${name}" scheduled to calendar on ${new Date(scheduleDate).toLocaleDateString()} at ${String(parseInt(scheduleHour)).padStart(2, '0')}:${String(scheduleMinute).padStart(2,'0')}`);
     closeModal();
     renderFlowList();
     renderCalendarView();  // Update calendar too
@@ -4972,7 +5090,8 @@ function getTaskScheduleTimestamp(task) {
     const scheduled = new Date(sortedDates[0]);
     if (!isNaN(scheduled.getTime())) {
       if (typeof task.scheduledHour === 'number' && !Number.isNaN(task.scheduledHour)) {
-        scheduled.setHours(task.scheduledHour, 0, 0, 0);
+        const m = ('scheduledMinute' in task) ? (Number(task.scheduledMinute) || 0) : (Number(task.minute) || 0);
+        scheduled.setHours(task.scheduledHour, m, 0, 0);
       } else {
         scheduled.setHours(0, 0, 0, 0);
       }
@@ -8637,6 +8756,115 @@ function exportTaskBreakdownPDF() {
   }
 }
 
+function renderValuesPage() {
+  const page = document.getElementById('page-values');
+  if (!page) return;
+
+  page.innerHTML = `
+    <div style="padding: 20px 40px 16px; border-bottom: 1px solid var(--border);">
+      <div style="font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase;">💎 Our Mission & Values</div>
+      <div style="font-size: 12px; color: var(--muted2); margin-top: 4px;">Why Tempow is built the way it is</div>
+    </div>
+    <div style="padding: 28px 40px; max-width: 1000px;">
+
+      <!-- ═══ MISSION STATEMENT ═══ -->
+      <div style="background: linear-gradient(135deg, var(--active-dim) 0%, rgba(79,174,231,0.06) 100%); border: 2px solid var(--active); border-radius: 12px; padding: 32px; margin-bottom: 40px; text-align: center;">
+        <div style="font-size: 24px; margin-bottom: 16px;">⏳</div>
+        <p style="font-size: 16px; font-weight: 600; color: var(--active); line-height: 1.6; margin: 0;">
+          "If you don't sacrifice for your dream, your dream becomes a sacrifice."
+        </p>
+        <p style="font-size: 14px; color: var(--text); line-height: 1.6; margin: 16px 0 0 0;">
+          The most important thing we have is our <strong>time</strong>. That's why Tempow is here—to help you put in the work that matters.
+        </p>
+      </div>
+
+      <!-- ═══ DESIGN PRINCIPLES INTRO ═══ -->
+      <div style="margin-bottom: 36px;">
+        <h2 style="font-size: 14px; font-weight: 600; color: var(--text); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 12px 0;">Why Our Design Choices Exist</h2>
+        <p style="font-size: 13px; color: var(--muted2); line-height: 1.6; margin: 0;">
+          Some Tempow features look like restrictions. They're not. They're guardrails designed to keep you focused on what matters.
+        </p>
+      </div>
+
+      <!-- ═══ VALUE 1: FIRST INSTINCT ═══ -->
+      <div style="background: var(--active-dim); border: 1px solid var(--active); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <div style="font-size: 28px; min-width: 40px;">💭</div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 15px; font-weight: 600; color: var(--active); margin: 0 0 8px 0;">Your First Instinct Is Best</h3>
+            <p style="font-size: 13px; color: var(--text); line-height: 1.6; margin: 0;">
+              You can't change duration because your first estimate is your truest assessment. Any changes later are influenced by optimism bias, not clearer thinking.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VALUE 2: ACCOUNTABILITY ═══ -->
+      <div style="background: var(--break-dim); border: 1px solid var(--break); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <div style="font-size: 28px; min-width: 40px;">⚖️</div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 15px; font-weight: 600; color: var(--break); margin: 0 0 8px 0;">Accountability Over Comfort</h3>
+            <p style="font-size: 13px; color: var(--text); line-height: 1.6; margin: 0;">
+              25% extension cap and 50% completion threshold force you to finish what you start instead of endlessly postponing. Discomfort is the point.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VALUE 3: FOCUS ═══ -->
+      <div style="background: rgba(93,224,168,0.08); border: 1px solid rgba(93,224,168,0.3); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <div style="font-size: 28px; min-width: 40px;">🎯</div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 15px; font-weight: 600; color: var(--text); margin: 0 0 8px 0;">Minimal = Maximum Focus</h3>
+            <p style="font-size: 13px; color: var(--text); line-height: 1.6; margin: 0;">
+              No flashy UI, animations, or distractions. We stay stark and utilitarian because your focus matters more than our polish.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VALUE 4: PRICING ═══ -->
+      <div style="background: var(--done-dim); border: 1px solid var(--done); border-radius: 12px; padding: 20px; margin-bottom: 40px;">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <div style="font-size: 28px; min-width: 40px;">💰</div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 15px; font-weight: 600; color: var(--done); margin: 0 0 8px 0;">Free Forever (Early Users)</h3>
+            <p style="font-size: 13px; color: var(--text); line-height: 1.6; margin: 0;">
+              Using Tempow in 2025–2026? You're locked in free forever. Early adopters matter to us.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ FEATURE REQUEST ═══ -->
+      <div style="background: var(--surface); border: 2px solid var(--active); border-radius: 12px; padding: 24px; margin-bottom: 20px; text-align: center;">
+        <div style="font-size: 24px; margin-bottom: 12px;">🚀</div>
+        <h3 style="font-size: 15px; font-weight: 600; color: var(--active); margin: 0 0 12px 0;">Have an Idea?</h3>
+        <p style="font-size: 13px; color: var(--text); line-height: 1.6; margin: 0 0 8px 0;">
+          Over 80% of Tempow's features came from user suggestions. That's why we're so open to your ideas—our community shapes what we build.
+        </p>
+        <p style="font-size: 13px; color: var(--muted2); line-height: 1.6; margin: 0 0 16px 0;">
+          Share features aligned with our values above.
+        </p>
+        <button type="button" class="btn btn-report" onclick="openSuggestionModal()" style="padding: 10px 20px; background: var(--active); border-color: var(--active); color: #0a1f16; font-weight: 600; cursor: pointer; border-radius: 8px; border: none;">
+          💡 Send Feature Suggestion
+        </button>
+      </div>
+
+      <!-- ═══ COMMUNITY NOTE ═══ -->
+      <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center;">
+        <p style="font-size: 12px; color: var(--muted); line-height: 1.6; margin: 0;">
+          Built by a small team. Your feedback shapes our future.
+        </p>
+      </div>
+
+
+    </div>
+  `;
+}
+
 function printReportToPDF() {
   // Add print styles that hide the nav and other UI elements
   const style = document.createElement('style');
@@ -9699,6 +9927,172 @@ function updateCalendarExportLabel() {
   }
 }
 
+let calendarDayFilter = {
+  metric: 'hours',
+  operator: 'none',
+  value: '',
+  valueTo: ''
+};
+let calendarDayFilterMatches = [];
+
+function updateCalendarDayFilterForm() {
+  const metricSelect = document.getElementById('calendarDayFilterMetricSelect');
+  const operatorSelect = document.getElementById('calendarDayFilterOperatorSelect');
+  const valueInput = document.getElementById('calendarDayFilterValue');
+  const valueToInput = document.getElementById('calendarDayFilterValueTo');
+  const metric = metricSelect ? metricSelect.value : 'hours';
+  const operator = operatorSelect ? operatorSelect.value : 'none';
+
+  if (valueInput) {
+    valueInput.placeholder = operator === 'between' ? 'From' : 'Value';
+    valueInput.step = metric === 'hours' ? '0.25' : '1';
+  }
+  if (valueToInput) {
+    valueToInput.style.display = operator === 'between' ? 'block' : 'none';
+    valueToInput.placeholder = 'To';
+    valueToInput.step = metric === 'hours' ? '0.25' : '1';
+  }
+}
+
+function getTaskDurationMinutes(task) {
+  if (task.duration && Number(task.duration) > 0) {
+    return Number(task.duration);
+  }
+  if (task.allocSecs && Number(task.allocSecs) > 0) {
+    return Math.round(Number(task.allocSecs) / 60);
+  }
+  return 0;
+}
+
+function getDayMetrics(date) {
+  const dayTasks = getTasksForDate(date);
+  const totalMinutes = dayTasks.reduce((sum, task) => sum + getTaskDurationMinutes(task), 0);
+  return {
+    date,
+    tasks: dayTasks,
+    taskCount: dayTasks.length,
+    totalMinutes,
+    totalHours: totalMinutes / 60
+  };
+}
+
+function getCalendarDayFilterMatches() {
+  const matches = [];
+  if (calendarDayFilter.operator === 'none' || calendarDayFilter.value === '') {
+    return matches;
+  }
+
+  const value = parseFloat(calendarDayFilter.value);
+  const valueTo = calendarDayFilter.operator === 'between' ? parseFloat(calendarDayFilter.valueTo) : null;
+  if (Number.isNaN(value) || value < 0) {
+    return matches;
+  }
+  if (calendarDayFilter.operator === 'between' && (Number.isNaN(valueTo) || valueTo < 0 || valueTo < value)) {
+    return matches;
+  }
+
+  const range = getCalendarViewRange();
+  const start = new Date(range.startIso);
+  const end = new Date(range.endIso);
+  const current = new Date(start);
+
+  while (current <= end) {
+    const metrics = getDayMetrics(current);
+    let matchesFilter = false;
+    const comparisonValue = calendarDayFilter.metric === 'tasks' ? metrics.taskCount : metrics.totalHours;
+
+    if (calendarDayFilter.operator === 'less') {
+      matchesFilter = comparisonValue < value;
+    } else if (calendarDayFilter.operator === 'more') {
+      matchesFilter = comparisonValue > value;
+    } else if (calendarDayFilter.operator === 'equal') {
+      matchesFilter = comparisonValue === value;
+    } else if (calendarDayFilter.operator === 'between') {
+      matchesFilter = comparisonValue >= value && comparisonValue <= valueTo;
+    }
+
+    if (matchesFilter) {
+      matches.push({ date: new Date(current), metrics });
+    }
+    current.setDate(current.getDate() + 1);
+  }
+
+  return matches;
+}
+
+function applyCalendarDayFilter() {
+  const metricSelect = document.getElementById('calendarDayFilterMetricSelect');
+  const operatorSelect = document.getElementById('calendarDayFilterOperatorSelect');
+  const valueInput = document.getElementById('calendarDayFilterValue');
+  const valueToInput = document.getElementById('calendarDayFilterValueTo');
+
+  calendarDayFilter.metric = metricSelect ? metricSelect.value : 'hours';
+  calendarDayFilter.operator = operatorSelect ? operatorSelect.value : 'none';
+  calendarDayFilter.value = valueInput ? valueInput.value.trim() : '';
+  calendarDayFilter.valueTo = valueToInput ? valueToInput.value.trim() : '';
+  calendarDayFilterMatches = getCalendarDayFilterMatches();
+
+  renderCalendarView();
+  renderCalendarFilterResults();
+}
+
+function clearCalendarDayFilter() {
+  const metricSelect = document.getElementById('calendarDayFilterMetricSelect');
+  const operatorSelect = document.getElementById('calendarDayFilterOperatorSelect');
+  const valueInput = document.getElementById('calendarDayFilterValue');
+  const valueToInput = document.getElementById('calendarDayFilterValueTo');
+
+  if (metricSelect) metricSelect.value = 'hours';
+  if (operatorSelect) operatorSelect.value = 'none';
+  if (valueInput) valueInput.value = '';
+  if (valueToInput) valueToInput.value = '';
+  updateCalendarDayFilterForm();
+
+  calendarDayFilter = {
+    metric: 'hours',
+    operator: 'none',
+    value: '',
+    valueTo: ''
+  };
+  calendarDayFilterMatches = [];
+  renderCalendarView();
+  renderCalendarFilterResults();
+}
+
+function renderCalendarFilterResults() {
+  const list = document.getElementById('calendarDayFilterResults');
+  if (!list) return;
+
+  if (calendarDayFilter.operator === 'none') {
+    list.innerHTML = 'Choose a metric, operator, and value to highlight matching days.';
+    return;
+  }
+
+  if (!calendarDayFilterMatches.length) {
+    const metricLabel = calendarDayFilter.metric === 'tasks' ? 'tasks' : 'hours';
+    const opLabel = calendarDayFilter.operator === 'less' ? 'less than'
+      : calendarDayFilter.operator === 'more' ? 'more than'
+      : calendarDayFilter.operator === 'equal' ? 'exactly'
+      : calendarDayFilter.operator === 'between' ? `between ${calendarDayFilter.value} and ${calendarDayFilter.valueTo}`
+      : '';
+
+    list.innerHTML = `<div style="color: var(--muted); font-size: 12px; text-align: center; padding: 12px;">No days with ${opLabel} ${metricLabel} found in the current view.</div>`;
+    return;
+  }
+
+  list.innerHTML = calendarDayFilterMatches.map(match => {
+    const date = match.date;
+    const label = `${weekDays[date.getDay()].slice(0, 3)} ${date.getMonth() + 1}/${date.getDate()}`;
+    const hours = Math.floor(match.metrics.totalMinutes / 60);
+    const mins = match.metrics.totalMinutes % 60;
+    return `<div style="display:flex;justify-content:space-between;gap: 12px;align-items:center;padding:8px 10px;background: rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:10px;font-size:12px;">
+      <span>${label}</span>
+      <span>${match.metrics.taskCount} ${match.metrics.taskCount === 1 ? 'task' : 'tasks'}</span>
+      <span>${hours}h ${mins}m</span>
+    </div>`;
+  }).join('');
+}
+
 function setCalendarView(view) {
   calendarCurrentView = view;
   document.querySelectorAll('.calendar-view-btn').forEach(btn => {
@@ -9744,6 +10138,9 @@ function renderCalendarView() {
   } else if (calendarCurrentView === 'day') {
     renderDayView();
   }
+
+  calendarDayFilterMatches = calendarDayFilter === 'none' ? [] : getCalendarDayFilterMatches();
+  renderCalendarFilterResults();
 }
 
 function renderMonthView() {
@@ -9769,8 +10166,16 @@ function renderMonthView() {
     const cellDate = new Date(year, month, day);
     const isToday = cellDate.toDateString() === today.toDateString();
     const dayTasks = getTasksForDate(cellDate);
-    
-    html += `<div class="calendar-day-cell ${isToday ? 'today' : ''}" onclick="selectCalendarDate(${day})">
+    const dateStr = getDateString(cellDate);
+    const isFiltered = calendarDayFilterMatches.some(match => getDateString(match.date) === dateStr);
+    html += `<div class="calendar-day-cell ${isToday ? 'today' : ''} ${isFiltered ? 'filtered-day' : ''}" 
+      onclick="selectCalendarDate(${day})"
+      onmousedown="startDayLongPress(new Date(${cellDate.getTime()}))"
+      onmouseup="cancelDayLongPress()"
+      onmouseleave="cancelDayLongPress()"
+      ontouchstart="startDayLongPress(new Date(${cellDate.getTime()}))"
+      ontouchend="cancelDayLongPress()"
+      style="user-select: none; -webkit-user-select: none;">
       <div class="calendar-day-number">${day}</div>
       <div class="calendar-day-tasks">`;
     
@@ -9820,8 +10225,9 @@ function renderWeekView() {
     const month = String(dayDate.getMonth() + 1).padStart(2, '0');
     const day = String(dayDate.getDate()).padStart(2, '0');
     const currentDateStr = `${year}-${month}-${day}`;
+    const isFiltered = calendarDayFilterMatches.some(match => getDateString(match.date) === currentDateStr);
     
-    html += `<div class="calendar-week-day ${isToday ? 'today' : ''}">
+    html += `<div class="calendar-week-day ${isToday ? 'today' : ''} ${isFiltered ? 'filtered-day' : ''}">
       <div class="calendar-week-day-header">
         <div class="calendar-week-day-title">${weekDays[dayDate.getDay()].slice(0, 3)}</div>
         <div class="calendar-week-day-number">${dayDate.getDate()}</div>
@@ -9845,9 +10251,10 @@ function renderWeekView() {
       html += `<div class="calendar-week-empty">No tasks scheduled</div>`;
     } else {
       dayTasks.forEach(task => {
+        const taskMinute = ('minute' in task) ? task.minute : 0;
         html += `<div class="calendar-week-tooltip-item">
             <div class="calendar-week-tooltip-task">
-              <div class="calendar-week-tooltip-task-time">${String(task.hour).padStart(2, '0')}:00</div>
+              <div class="calendar-week-tooltip-task-time">${String(task.hour).padStart(2, '0')}:${String(taskMinute).padStart(2, '0')}</div>
               <div class="calendar-week-tooltip-task-details">
                 <div class="calendar-week-tooltip-task-name">${task.name}</div>
                 <div class="calendar-week-tooltip-task-notes">${task.notes ? task.notes : 'No notes'}</div>
@@ -9896,12 +10303,14 @@ function renderDayView() {
     html += '<div style="color: var(--muted); font-size: 14px; padding: 40px; text-align: center;">No tasks scheduled for this day</div>';
   } else {
     dayTasks.forEach(task => {
+      const taskMinute = ('minute' in task) ? task.minute : 0;
       html += `<div class="task-item-cal" style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
         <div>
           <div class="task-item-cal-name">${task.name}</div>
-          <div class="task-item-cal-time">${String(task.hour).padStart(2, '0')}:00 - ${task.duration || 60} min</div>
+          <div class="task-item-cal-time">${String(task.hour).padStart(2, '0')}:${String(taskMinute).padStart(2, '0')} - ${task.duration || 60} min</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="openSendTaskToDateModal('${task.id}')" style="padding: 6px 10px; background: var(--surface); color: var(--text); border: 1px solid var(--border2); border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;" onmouseover="this.style.background='rgba(0,0,0,0.04)'" onmouseout="this.style.background='var(--surface)'">📤</button>
           <button onclick="openTaskInGoogleCalendar('${task.id}')" style="padding: 6px 10px; background: var(--surface); color: var(--text); border: 1px solid var(--border2); border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;" onmouseover="this.style.background='rgba(0,0,0,0.04)'" onmouseout="this.style.background='var(--surface)'">+ Google</button>
           <button onclick="deleteCalendarTask('${task.id}')" style="padding: 6px; background: transparent; color: #ff5454; border: 1px solid rgba(255,80,80,0.3); border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;" onmouseover="this.style.background='rgba(255, 80, 80, 0.12)'" onmouseout="this.style.background='transparent'">✕</button>
         </div>
@@ -9939,9 +10348,10 @@ function openTaskInGoogleCalendar(taskId) {
 
 function buildGoogleCalendarUrl(task, dateStr) {
   const startHour = Number(task.hour || 9);
+  const startMinute = Number(task.minute || 0);
   const durationMinutes = Number(task.duration || Math.round((task.allocSecs || 0) / 60) || 60);
   const [year, month, day] = dateStr.split('-').map(Number);
-  const startDate = new Date(year, month - 1, day, startHour, 0, 0);
+  const startDate = new Date(year, month - 1, day, startHour, startMinute, 0);
   const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
 
   const formatUTC = date => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
@@ -10009,7 +10419,7 @@ function buildICSForRange(tasks, startIso, endIso) {
     taskDates.forEach(taskDate => {
       const [year, month, day] = taskDate.split('-').map(s => Number(s));
       const startDate = new Date(year, month - 1, day);
-      startDate.setHours(Number(task.hour || 9), 0, 0, 0);
+      startDate.setHours(Number(task.hour || 9), Number(task.minute || 0), 0, 0);
       const durationMinutes = Number(task.duration || Math.round((task.allocSecs || 0) / 60) || 60);
       const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
       const uid = `tempow-${task.id || Math.random().toString(36).slice(2)}-${taskDate}@tempow.app`;
@@ -10085,15 +10495,17 @@ function renderTodaysTasks() {
     return;
   }
   
-  list.innerHTML = todaysTasks.map(task => `
+  list.innerHTML = todaysTasks.map(task => {
+    const taskMinute = ('minute' in task) ? task.minute : 0;
+    return `
     <div class="task-item-cal" style="display:flex;flex-direction:column;gap:6px;">
       <div class="task-item-cal-name">${task.name}</div>
-      <div class="task-item-cal-time">${String(task.hour).padStart(2, '0')}:00 (${task.duration} min)</div>
+      <div class="task-item-cal-time">${String(task.hour).padStart(2, '0')}:${String(taskMinute).padStart(2,'0')} (${task.duration} min)</div>
       <div style="display:flex;gap:10px;align-items:center;">
         <div style="font-size: 9px; color: #ff5454; cursor: pointer;" onclick="deleteCalendarTask('${task.id}')">✕ Delete</div>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function renderCalendarSearchResults() {
@@ -10113,12 +10525,13 @@ function renderCalendarSearchResults() {
   }
 
   list.innerHTML = matches.map(task => {
+    const taskMinute = ('minute' in task) ? task.minute : 0;
     const dates = getTaskScheduledDates(task);
     const dateLabel = dates.length > 0 ? dates.join(', ') : (task.scheduledDate || 'No date');
     return `
       <div class="task-item-cal">
         <div class="task-item-cal-name">${task.name}</div>
-        <div class="task-item-cal-time">${dateLabel} • ${String(task.hour || 0).padStart(2, '0')}:00 • ${task.duration || 0} min</div>
+        <div class="task-item-cal-time">${dateLabel} • ${String(task.hour || 0).padStart(2, '0')}:${String(taskMinute).padStart(2,'0')} • ${task.duration || 0} min</div>
       </div>
     `;
   }).join('');
@@ -10129,10 +10542,236 @@ function selectCalendarDate(day) {
   setCalendarView('day');
 }
 
+// Long press handler for day details
+let dayLongPressTimer = null;
+function startDayLongPress(date) {
+  dayLongPressTimer = setTimeout(() => {
+    showDayDetails(date);
+  }, 500); // 500ms long press
+}
+
+function cancelDayLongPress() {
+  if (dayLongPressTimer) {
+    clearTimeout(dayLongPressTimer);
+    dayLongPressTimer = null;
+  }
+}
+
+function showDayDetails(date) {
+  const dayTasks = getTasksForDate(date);
+  const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  
+  // Calculate total hours and minutes
+  let totalMinutes = 0;
+  dayTasks.forEach(task => {
+    const duration = task.duration || 0;  // duration is stored in minutes
+    totalMinutes += duration;
+  });
+  
+  const totalHours = Math.floor(totalMinutes / 60);
+  const remainingMinutes = totalMinutes % 60;
+  
+  // Update modal header
+  document.getElementById('dayDetailsDate').textContent = dateStr;
+  document.getElementById('dayDetailsTotalText').textContent = `${totalHours}h ${remainingMinutes}m`;
+  
+  // Build task list
+  const tasksList = document.getElementById('dayDetailsTasksList');
+  if (dayTasks.length === 0) {
+    tasksList.innerHTML = '<div style="color: var(--muted); font-size: 13px; text-align: center; padding: 20px;">No tasks scheduled</div>';
+  } else {
+    tasksList.innerHTML = dayTasks.map(task => {
+      // Format start time from hour and minute
+      const startHour = String(task.hour || 0).padStart(2, '0');
+      const startMinute = String(task.minute || 0).padStart(2, '0');
+      const startTime = `${startHour}:${startMinute}`;
+      
+      // Get duration in minutes
+      const durationMins = task.duration || 0;
+      
+      return `
+        <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start;">
+          <div style="flex: 1;">
+            <div style="font-weight: 600; color: var(--text); margin-bottom: 4px;">${task.name}</div>
+            <div style="font-size: 12px; color: var(--muted);">
+              ${startTime} - ${durationMins} min
+            </div>
+            ${task.notes ? `<div style="font-size: 12px; color: var(--muted2); margin-top: 6px;">${task.notes}</div>` : ''}
+          </div>
+          <button type="button" onclick="openEditCalendarTaskModal(${task.id})" style="padding: 6px 12px; background: var(--active); color: #0a1f16; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; margin-left: 8px; white-space: nowrap;">Edit</button>
+        </div>
+      `;
+    }).join('');
+  }
+  
+  // Show modal
+  document.getElementById('dayDetailsModal').classList.add('open');
+}
+
+function closeDayDetailsModal() {
+  document.getElementById('dayDetailsModal').classList.remove('open');
+}
+
+// Track which task is being edited
+let editingCalendarTaskId = null;
+
+function openEditCalendarTaskModal(taskId) {
+  editingCalendarTaskId = taskId;
+  const task = allTasks.find(t => t.id === taskId);
+  if (!task) return;
+  
+  // Fill in the form
+  document.getElementById('editCalTaskName').value = task.name || '';
+  const timeStr = String(task.hour || 0).padStart(2, '0') + ':' + String(task.minute || 0).padStart(2, '0');
+  document.getElementById('editCalTaskTime').value = timeStr;
+  updateEditCalendarTimeLabel();
+  
+  // Show the modal
+  document.getElementById('editCalendarTaskModal').classList.add('open');
+  document.getElementById('editCalTaskName').focus();
+}
+
+function closeEditCalendarTaskModal() {
+  document.getElementById('editCalendarTaskModal').classList.remove('open');
+  editingCalendarTaskId = null;
+}
+
+function updateEditCalendarTimeLabel() {
+  const timeStr = document.getElementById('editCalTaskTime').value;
+  const label = document.getElementById('editCalTaskTimeLabel');
+  if (timeStr && label) {
+    label.textContent = formatTime12(timeStr);
+  }
+}
+
+function saveEditedCalendarTask() {
+  if (!editingCalendarTaskId) return;
+  
+  const task = allTasks.find(t => t.id === editingCalendarTaskId);
+  if (!task) return;
+  
+  const newName = document.getElementById('editCalTaskName').value.trim();
+  const timeStr = document.getElementById('editCalTaskTime').value || '09:00';
+  const [hourPart, minutePart] = timeStr.split(':');
+  const hour = parseInt(hourPart, 10) || 0;
+  const minute = parseInt(minutePart, 10) || 0;
+  
+  if (!newName) {
+    alert('Please enter a task name');
+    return;
+  }
+  
+  // Update task
+  task.name = newName;
+  task.hour = hour;
+  task.minute = minute;
+  
+  // Save and sync
+  saveFlowData();
+  flowTasks = allTasks;
+  calendarTasks = allTasks;
+  
+  // Close both modals and refresh views
+  closeEditCalendarTaskModal();
+  closeDayDetailsModal();
+  renderCalendarView();
+  renderFlowList();
+  renderTodaysTasks();
+}
+
+// Add event listener for time input
+document.addEventListener('DOMContentLoaded', function() {
+  const editTimeInput = document.getElementById('editCalTaskTime');
+  if (editTimeInput) {
+    editTimeInput.addEventListener('input', updateEditCalendarTimeLabel);
+  }
+});
+
+// Track which task is being sent to another date
+let sendTaskToDateId = null;
+
+function openSendTaskToDateModal(taskId) {
+  const normalizedId = String(taskId);
+  sendTaskToDateId = normalizedId;
+  const task = allTasks.find(t => String(t.id) === normalizedId);
+  if (!task) {
+    console.error('Task not found:', normalizedId);
+    return;
+  }
+  
+  // Show the task name
+  document.getElementById('sendTaskToDateName').textContent = task.name;
+  
+  // Set default date to tomorrow
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dateStr = tomorrow.toISOString().split('T')[0];
+  document.getElementById('sendTaskToDatePicker').value = dateStr;
+  
+  // Show modal
+  document.getElementById('sendTaskToDateModal').classList.add('open');
+  document.getElementById('sendTaskToDatePicker').focus();
+}
+
+function closeSendTaskToDateModal() {
+  document.getElementById('sendTaskToDateModal').classList.remove('open');
+  sendTaskToDateId = null;
+}
+
+function sendTaskToDate() {
+  if (!sendTaskToDateId) return;
+  
+  const normalizedId = String(sendTaskToDateId);
+  const task = allTasks.find(t => String(t.id) === normalizedId);
+  if (!task) {
+    console.error('Task not found:', normalizedId);
+    return;
+  }
+  
+  const newDateStr = document.getElementById('sendTaskToDatePicker').value;
+  if (!newDateStr) {
+    alert('Please select a date');
+    return;
+  }
+  
+  // Create a copy of the task for the new date
+  const newTask = {
+    id: Date.now() + Math.random(),
+    name: task.name,
+    scheduledDate: newDateStr,
+    scheduledDates: [newDateStr],
+    hour: task.hour || 0,
+    minute: task.minute || 0,
+    duration: task.duration || 60,
+    allocSecs: task.allocSecs || (task.duration || 60) * 60,
+    notes: task.notes || '',
+    createdAt: Date.now(),
+    completed: false,
+    state: 'idle',
+    segments: [],
+    splits: []
+  };
+  
+  // Add the new task
+  allTasks.push(newTask);
+  flowTasks = allTasks;
+  calendarTasks = allTasks;
+  
+  // Save and refresh
+  saveFlowData();
+  closeSendTaskToDateModal();
+  renderCalendarView();
+  
+  // Show success message
+  const dateObj = new Date(newDateStr);
+  const dateDisplay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  alert(`Task "${task.name}" sent to ${dateDisplay}!`);
+}
+
 function openCalendarTaskModal() {
   const today = new Date();
   document.getElementById('calTaskDate').valueAsDate = today;
-  document.getElementById('calTaskHour').value = '9';
+  document.getElementById('calTaskTime').value = '09:00';
   document.getElementById('calTaskDurationHours').value = '0';
   document.getElementById('calTaskDurationMinutes').value = '60';
   document.getElementById('calTaskName').value = '';
@@ -10142,6 +10781,8 @@ function openCalendarTaskModal() {
   updateCalendarDurationDisplay();
   document.getElementById('calendarTaskModal').classList.add('open');
   document.getElementById('calTaskName').focus();
+  // Update 12-hour labels
+  updateTimeLabels();
 }
 
 function closeCalendarTaskModal() {
@@ -10170,7 +10811,11 @@ function updateCalendarDurationDisplay() {
 function saveCalendarTask() {
   const name = document.getElementById('calTaskName').value.trim();
   const date = document.getElementById('calTaskDate').value;
-  const hour = parseInt(document.getElementById('calTaskHour').value) || 0;
+  // read HH:MM from time input
+  const timeStr = document.getElementById('calTaskTime').value || '09:00';
+  const [hourPart, minutePart] = timeStr.split(':');
+  const hour = parseInt(hourPart, 10) || 0;
+  const minute = parseInt(minutePart, 10) || 0;
   const durationHours = parseInt(document.getElementById('calTaskDurationHours').value) || 0;
   const durationMinutes = parseInt(document.getElementById('calTaskDurationMinutes').value) || 0;
   const duration = durationHours * 60 + durationMinutes;  // Convert to total minutes
@@ -10190,6 +10835,7 @@ function saveCalendarTask() {
       scheduledDate: d,
       scheduledDates: [d],
       hour,
+      minute: minute || 0,
       duration,
       allocSecs: duration * 60,
       notes,
@@ -10379,7 +11025,8 @@ function transferToTimer(taskId, scheduledDate = null) {
     isUntimed: false,
     notes: task.notes || '',
     scheduledDate: targetDate,
-    scheduledHour: task.hour,
+      scheduledHour: task.hour,
+      scheduledMinute: task.minute || 0,
     splits: task.splits ? JSON.parse(JSON.stringify(task.splits)) : [],
     pausedAt: task.pausedAt,
     completedAt: task.completedAt,
@@ -10458,6 +11105,35 @@ updateBadges();
 updateFlowLastSaved();
 updateHoursTracker();
 initializeButtonMode();
+
+// Time formatting helpers: show 12-hour AM/PM labels next to native time inputs
+function formatTime12(timeStr) {
+  if (!timeStr) return '';
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  let h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10) || 0;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hh = ((h + 11) % 12) + 1; // convert 0..23 to 1..12
+  return `${hh}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+function updateTimeLabels() {
+  const calInput = document.getElementById('calTaskTime');
+  const calLabel = document.getElementById('calTaskTimeLabel');
+  if (calInput && calLabel) calLabel.textContent = formatTime12(calInput.value);
+
+  const schedInput = document.getElementById('inp-schedule-time');
+  const schedLabel = document.getElementById('inpScheduleTimeLabel');
+  if (schedInput && schedLabel) schedLabel.textContent = formatTime12(schedInput.value);
+}
+
+// Attach listeners (safe to call multiple times)
+document.getElementById('calTaskTime')?.addEventListener('input', updateTimeLabels);
+document.getElementById('inp-schedule-time')?.addEventListener('input', updateTimeLabels);
+
+// Initialize labels on load
+updateTimeLabels();
 
 // Check for elapsed time on initial load (if app was closed)
 if (!hasCheckedActivityOnLoad && window.api && window.api.getElapsedTime) {
