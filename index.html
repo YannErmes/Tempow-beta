@@ -5999,7 +5999,6 @@ function ensureDebugOverlay() {
   d.style.borderRadius = '6px';
   d.style.pointerEvents = 'none';
   d.style.fontFamily = 'monospace';
-  d.innerHTML = 'debug';
   document.body.appendChild(d);
 }
 
@@ -6015,17 +6014,7 @@ function updateDebugOverlay() {
   const t = flowTasks.find(x => getCurrentTaskState(x) === 'running' || getCurrentTaskState(x) === 'paused');
   if (!t) { el.style.display = 'none'; return; }
   el.style.display = 'block';
-  const currentDateStr = getContextDateStr();
-  const worked = getRealWorkedSecs(t, currentDateStr);
-  const alloc = Math.max(t.allocSecs,1);
-  const workPct = Math.min((worked/alloc)*100,100).toFixed(2);
-  const bar = document.querySelector('#flow-card-' + t.id + ' .bar-track');
-  let visualPct = '—';
-  if (bar) {
-    const wp = bar.querySelector('.work-progress');
-    if (wp) visualPct = (parseFloat((wp.style.width||'0').replace('%',''))||0).toFixed(2);
-  }
-  el.innerHTML = `<div>Task: ${t.name}</div><div>worked: ${fmtDurF(worked)} / ${fmtDurF(alloc)}</div><div>calc%: ${workPct}%</div><div>visual%: ${visualPct}%</div>`;
+  el.innerHTML = '';
 }
 function startVisualLoop() {
   if (visualLoopId) return;
