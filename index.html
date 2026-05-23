@@ -5822,7 +5822,7 @@ function markDone(id) {
   const t = flowTasks.find(x => x.id===id);
   if (!t) return;
   const currentDateStr = getContextDateStr();
-  const worked = totalWorkedSecs(t, currentDateStr);
+  const worked = getRealWorkedSecs(t, currentDateStr);
   if (worked < t.allocSecs * 0.5) {
     alert(`You need to complete at least 50% of the allocated time before marking done.\n\nWorked: ${fmtDurF(worked)} / ${fmtDurF(t.allocSecs*0.5)} minimum.`);
     return;
@@ -5833,6 +5833,7 @@ function markDone(id) {
     live.endTs = Date.now();
   }
   setCurrentTaskState(t, 'done');
+  updateProgressBarsSmooth();  // Immediately update progress bar to 100%
   stopRepeatingAlarm();
   playDing();
   showDoneBanner(t.name);
@@ -5847,6 +5848,7 @@ function markUntimeTaskDone(id) {
   if (!t || !t.isUntimed) return;
   
   setCurrentTaskState(t, 'done');
+  updateProgressBarsSmooth();  // Immediately update progress bar
   stopRepeatingAlarm();
   playDing();
   showDoneBanner(t.name);
@@ -5923,20 +5925,35 @@ function ensureTick() {
   globalTick = setInterval(() => {
     let any = false;
     const currentDateStr = getContextDateStr();
+    const now = Date.now();
+    
     flowTasks.forEach(t => {
       const taskState = getCurrentTaskState(t);
       if (taskState === 'running' || taskState === 'paused') {
         const live = liveSegment(t, currentDateStr);
         if (live) { live.secs++; any = true; }
 
-        if (taskState === 'running' && getRealWorkedSecs(t, currentDateStr) >= t.allocSecs) {
-          if (live) live.endTs = Date.now();
-          setCurrentTaskState(t, 'done');
-          autoSyncCompletedTask(t);
-          playDing();
-          showDoneBanner(t.name);
-          renderFlowList();
-          return;
+        // ╔════════════════════════════════════════════════════════════════╗
+        // ║ ALWAYS CHECK COMPLETION BASED ON REAL TIME DIFFERENCE        ║
+        // ║ Start Time + Allocated Time = Complete Time                  ║
+        // ╚════════════════════════════════════════════════════════════════╝
+        if (taskState === 'running') {
+          const totalWorked = getRealWorkedSecs(t, currentDateStr);
+          if (totalWorked >= t.allocSecs) {
+            if (live) {
+              // Update to exact real elapsed time
+              const realElapsedMs = now - live.startTs;
+              const realElapsedSecs = Math.floor(realElapsedMs / 1000);
+              live.secs = Math.max(live.secs, realElapsedSecs);
+              live.endTs = now;
+            }
+            setCurrentTaskState(t, 'done');
+            autoSyncCompletedTask(t);
+            playDing();
+            showDoneBanner(t.name);
+            renderFlowList();
+            return;
+          }
         }
 
         // ── Split timing detection ──────────────────────────────────
@@ -6272,12 +6289,12 @@ function addNewSplit(taskId) {
 function updateProgressBarsSmooth() {
   const currentDateStr = getContextDateStr();
   
-  // Find all running/paused tasks and smoothly update their bars
+  // Find all running/paused/done tasks and smoothly update their bars
   flowTasks.forEach(t => {
     if (t.isUntimed) return;
     
     const taskState = getTaskStateForDate(t, currentDateStr);
-    if (taskState !== 'running' && taskState !== 'paused') return;
+    if (taskState !== 'running' && taskState !== 'paused' && taskState !== 'done') return;
     
     const card = document.getElementById('flow-card-' + t.id);
     if (!card) return;
@@ -9236,15 +9253,25 @@ function saveFlowData() {
 
 async function syncElapsedTime(overrideElapsedSeconds) {
   let updated = false;
+  const currentDateStr = getContextDateStr();
+  const now = Date.now();
+  
+  console.log(`🔄 SYNC START - Date: ${currentDateStr}, Now: ${new Date(now).toLocaleTimeString()}`);
 
   // For each running or paused task, recalculate elapsed based on real-world time
   flowTasks.forEach(t => {
-    if (t.state === 'running' || t.state === 'paused') {
-      const live = liveSegment(t);
+    const taskState = getCurrentTaskState(t);
+    
+    if (taskState === 'running' || taskState === 'paused') {
+      const segments = getTaskSegmentsForDate(t, currentDateStr) || (t.segments || []);
+      const live = liveSegment(t, currentDateStr);
+      
       if (live && live.startTs) {
         // Calculate real elapsed time in seconds from the actual start timestamp
-        const realElapsedMs = Date.now() - live.startTs;
+        const realElapsedMs = now - live.startTs;
         const realElapsedSecs = Math.floor(realElapsedMs / 1000);
+        
+        console.log(`  Task "${t.name}" - Live segment: started at ${new Date(live.startTs).toLocaleTimeString()}, elapsed: ${realElapsedSecs}s, stored: ${live.secs}s`);
         
         // Set secs to the real elapsed time (not additive, absolute)
         if (realElapsedSecs > live.secs) {
@@ -9253,13 +9280,52 @@ async function syncElapsedTime(overrideElapsedSeconds) {
         }
       }
     }
+
+    // ╔════════════════════════════════════════════════════════════════╗
+    // ║ AUTO-COMPLETE: Check if ANY running task should be done      ║
+    // ║ Calculate based on: TOTAL WORKED TIME vs ALLOCATED TIME       ║
+    // ║ Works even when page was closed (uses real timestamps)        ║
+    // ╚════════════════════════════════════════════════════════════════╝
+    if (taskState === 'running') {
+      // Calculate total actual work time (using real timestamps, not stored secs)
+      const totalWorked = getRealWorkedSecs(t, currentDateStr);
+      
+      console.log(`  🏃 Running task "${t.name}" - Total worked: ${fmtDurF(totalWorked)}, Allocated: ${fmtDurF(t.allocSecs)}, Ready: ${totalWorked >= t.allocSecs}`);
+      
+      // If total worked time reaches or exceeds allocated time, mark as done
+      if (totalWorked >= t.allocSecs) {
+        const live = liveSegment(t, currentDateStr);
+        if (live) {
+          // Update the final secs value to match current elapsed time
+          const realElapsedMs = now - live.startTs;
+          const realElapsedSecs = Math.floor(realElapsedMs / 1000);
+          live.secs = Math.max(live.secs || 0, realElapsedSecs);
+          // Mark the segment as ended
+          live.endTs = now;
+        }
+        
+        // Mark task as completed
+        setCurrentTaskState(t, 'done');
+        autoSyncCompletedTask(t);
+        playDing();
+        showDoneBanner(t.name);
+        updated = true;
+        
+        console.log(`✅ COMPLETED: Task "${t.name}" auto-completed. Total worked: ${fmtDurF(totalWorked)} / Allocated: ${fmtDurF(t.allocSecs)}`);
+      }
+    }
   });
 
-  if (!updated) return;
+  if (!updated) {
+    console.log(`📊 SYNC END - No updates needed`);
+    return;
+  }
 
+  console.log(`📊 SYNC END - Updated and re-rendering...`);
   updateFlowStats();
   updateHoursTracker();
   updateLiveFlow();
+  updateProgressBarsSmooth();
   renderFlowList();
   saveFlowData();
 
@@ -10155,6 +10221,23 @@ document.addEventListener('mousemove', () => {
 
 // Detect keyboard activity
 document.addEventListener('keydown', () => {
+  lastActivityTime = Date.now();
+});
+
+// ╔════════════════════════════════════════════════════════════════╗
+// ║ NEW: PAGE VISIBILITY LISTENER FOR AUTO-COMPLETION             ║
+// ║ Ensures tasks complete even when page was hidden              ║
+// ╚════════════════════════════════════════════════════════════════╝
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    // Page has become visible - immediately sync elapsed time and check for completions
+    console.log('📱 Page became visible. Syncing tasks...');
+    syncElapsedTime();
+    renderFlowList();
+  } else {
+    // Page is now hidden
+    console.log('📴 Page hidden. Tasks will sync on return.');
+  }
   lastActivityTime = Date.now();
 });
 
