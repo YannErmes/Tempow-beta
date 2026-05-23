@@ -154,7 +154,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 /* ══════════════════════════════════════════
    PAGE PANELS
 ══════════════════════════════════════════ */
-.page { display: none; }
+.page { display: none; width: min(100%, 1240px); margin: 0 auto; padding: 0 20px; }
 .page.active { display: block; }
 
 /* Hide clock and help pages */
@@ -584,7 +584,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
   width: 100%;
 }
 
-.flow-main { padding: 28px 40px 120px; max-width: 900px; transition: padding-bottom 0.3s ease; }
+.flow-main { padding: 28px 40px 120px; max-width: 900px; margin: 0 auto; transition: padding-bottom 0.3s ease; }
 
 /* Task cards */
 .task-card {
@@ -614,11 +614,18 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 
 .bar-outer { position: relative; height: 10px; margin: 0 20px; }
 .bar-track { position: absolute; inset: 0; background: var(--track); border-radius: 2px; overflow: hidden; }
+/* Smooth width transitions for bar segments to avoid jitter */
+.bar-track > div { transition: width 0.32s linear; will-change: width; }
 .bar-active { position: absolute; left: 0; top: 0; height: 100%; background: var(--active); transition: width 2s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
 .task-card.done .bar-active { background: var(--done); }
 .brk-seg { position: absolute; top: 0; height: 10px; background: var(--break); cursor: pointer; z-index: 10; transition: filter 0.15s; }
 .brk-seg:hover { filter: brightness(1.3); }
 .brk-seg.live { animation: pulse 1.4s ease-in-out infinite; }
+
+/* Break marker: show a thin dot/line where break started (duration not shown) */
+.brk-marker { position: absolute; top: 0; height: 100%; width: 6px; background: var(--break); transform: translateX(-50%); border-radius: 3px; cursor: pointer; z-index: 12; transition: opacity 0.18s, transform 0.18s; }
+.brk-marker.live { animation: pulse 1.4s ease-in-out infinite; }
+.brk-marker.overrun { background: var(--danger); }
 @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.6} }
 
 /* Workspace page styles */
@@ -974,8 +981,9 @@ body.text-mode .data-btn .btn-text {
 /* Card view */
 #task-list.card-view {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
+  justify-content: center;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 260px));
+  gap: 20px;
 }
 #task-list.card-view .task-card {
   margin-bottom: 0;
@@ -3030,9 +3038,9 @@ body.text-mode .btn .btn-text {
       <!-- View Mode Buttons (compact) -->
       <div class="filter-section" style="gap: 4px;">
         <span class="filter-label">View</span>
-        <button class="view-mode-btn active" data-mode="list" onclick="setViewMode('list')" title="List View">≡</button>
+        <button class="view-mode-btn" data-mode="list" onclick="setViewMode('list')" title="List View">≡</button>
         <button class="view-mode-btn" data-mode="grid" onclick="setViewMode('grid')" title="Grid View">⊞</button>
-        <button class="view-mode-btn" data-mode="card" onclick="setViewMode('card')" title="Card View">◻</button>
+        <button class="view-mode-btn active" data-mode="card" onclick="setViewMode('card')" title="Card View">◻</button>
       </div>
     </div>
   </div>
@@ -4164,7 +4172,7 @@ let workStartTime = { h: 9, m: 0 };
 let workEndTime = { h: 18, m: 0 };
 
 // Filter and view mode settings
-let currentViewMode = 'list'; // 'list', 'grid', 'card'
+let currentViewMode = 'card'; // 'list', 'grid', 'card'
 let activeFilters = {
   all: true,
   running: false,
@@ -4708,7 +4716,13 @@ function getEstimatedEndTime(t, dateStr = null) {
   const worked = getRealWorkedSecs(t, dateStr);
   const remaining = Math.max(t.allocSecs - worked, 0);
   if (remaining === 0) return null;
-  const endMs = Date.now() + (remaining * 1000);
+  const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
+  const firstWorkStartTs = segments.reduce((min, seg) => {
+    if (seg.type !== 'work' || !seg.startTs) return min;
+    return min === null || seg.startTs < min ? seg.startTs : min;
+  }, null);
+  const startMs = firstWorkStartTs || Date.now();
+  const endMs = startMs + (t.allocSecs * 1000);
   const endDate = new Date(endMs);
   return endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
@@ -4826,7 +4840,7 @@ document.getElementById('workEndTime')?.addEventListener('change', e => {
 });
 
 document.addEventListener('click', e=>{
-  if (openTip && !e.target.closest('.brk-seg') && !e.target.closest('.brk-tip')) closeTip();
+  if (openTip && !e.target.closest('.brk-marker') && !e.target.closest('.brk-tip')) closeTip();
 });
 
 function addFlowTask() {
@@ -4942,18 +4956,11 @@ function setViewMode(mode) {
   document.querySelectorAll('.view-mode-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mode === mode);
   });
-  // Update task list display based on new rendering mode
   const list = document.getElementById('task-list');
-  if (mode === 'grid') {
-    list.style.display = 'grid';
-    list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(300px, 1fr))';
-    list.style.gap = '16px';
-  } else if (mode === 'card') {
-    list.style.display = 'grid';
-    list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(350px, 1fr))';
-    list.style.gap = '20px';
-  } else {
-    list.style.display = 'block';
+  if (list) {
+    list.classList.toggle('grid-view', mode === 'grid');
+    list.classList.toggle('card-view', mode === 'card');
+    list.classList.toggle('list-view', mode === 'list');
   }
   renderFlowList();
 }
@@ -5925,8 +5932,13 @@ function ensureTick() {
         }
       }
     });
-    if (!any) { clearInterval(globalTick); globalTick = null; }
-    else { updateLiveFlow(); updateFlowStats(); }
+    if (!any) {
+      clearInterval(globalTick); globalTick = null;
+      stopVisualLoop();
+    } else {
+      updateLiveFlow(); updateFlowStats();
+      startVisualLoop();
+    }
   }, 1000);
 }
 
@@ -5961,6 +5973,79 @@ function playDing() {
       osc.start(s); osc.stop(s + n.dur + 0.05);
     });
   } catch(e) {}
+}
+
+// Visual RAF-driven loop for smooth updates synchronized to paint
+let visualLoopId = null;
+let visualLastTs = 0;
+// Debug overlay toggle (set true during verification)
+const _debugVisualOverlay = true;
+
+function ensureDebugOverlay() {
+  if (!document) return;
+  if (document.getElementById('debugVisualOverlay')) return;
+  const d = document.createElement('div');
+  d.id = 'debugVisualOverlay';
+  d.style.position = 'fixed';
+  d.style.right = '12px';
+  d.style.top = '12px';
+  d.style.zIndex = '99999';
+  d.style.background = 'rgba(0,0,0,0.6)';
+  d.style.color = 'white';
+  d.style.fontSize = '12px';
+  d.style.padding = '8px 10px';
+  d.style.borderRadius = '6px';
+  d.style.pointerEvents = 'none';
+  d.style.fontFamily = 'monospace';
+  d.innerHTML = 'debug';
+  document.body.appendChild(d);
+}
+
+function updateDebugOverlay() {
+  if (!_debugVisualOverlay) return;
+  ensureDebugOverlay();
+  const el = document.getElementById('debugVisualOverlay');
+  if (!el) return;
+  const t = flowTasks.find(x => getCurrentTaskState(x) === 'running' || getCurrentTaskState(x) === 'paused');
+  if (!t) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  const currentDateStr = getContextDateStr();
+  const worked = getRealWorkedSecs(t, currentDateStr);
+  const alloc = Math.max(t.allocSecs,1);
+  const workPct = Math.min((worked/alloc)*100,100).toFixed(2);
+  const bar = document.querySelector('#flow-card-' + t.id + ' .bar-track');
+  let visualPct = '—';
+  if (bar) {
+    const wp = bar.querySelector('.work-progress');
+    if (wp) visualPct = (parseFloat((wp.style.width||'0').replace('%',''))||0).toFixed(2);
+  }
+  el.innerHTML = `<div>Task: ${t.name}</div><div>worked: ${fmtDurF(worked)} / ${fmtDurF(alloc)}</div><div>calc%: ${workPct}%</div><div>visual%: ${visualPct}%</div>`;
+}
+function startVisualLoop() {
+  if (visualLoopId) return;
+  function loop(ts) {
+    if (!visualLastTs) visualLastTs = ts;
+    const dt = ts - visualLastTs;
+    // throttle to ~12 FPS (~80ms) which is enough for smooth bar animation
+    if (dt >= 80) {
+      try { updateLiveFlow(); } catch (e) { console.error('updateLiveFlow error', e); }
+      try { updateProgressBarsSmooth(); } catch (e) { console.error('updateProgressBarsSmooth error', e); }
+      try { updateDebugOverlay(); } catch (e) { }
+      visualLastTs = ts;
+    }
+    // continue loop only if there are active tasks
+    if (flowTasks.some(t => getCurrentTaskState(t) === 'running' || getCurrentTaskState(t) === 'paused')) {
+      visualLoopId = requestAnimationFrame(loop);
+    } else {
+      visualLoopId = null; visualLastTs = 0;
+    }
+  }
+  visualLoopId = requestAnimationFrame(loop);
+}
+
+function stopVisualLoop() {
+  if (visualLoopId) cancelAnimationFrame(visualLoopId);
+  visualLoopId = null; visualLastTs = 0;
 }
 
 let _alarmInterval = null;
@@ -6066,26 +6151,40 @@ function toggleTip(taskId, segIdx, segEl, event, dateStr = null) {
 // ── Bar rendering ─────────────────────────────────────
 function buildBarHTML(t, dateStr = null) {
   const tb = getRealBreakSecs(t, dateStr);
-  const span = Math.max(t.allocSecs + tb, 1);
+  // Keep the task bar within the original allocated time.
+  // Breaks should be deducted from the available work time, not extend the ending time.
+  const span = Math.max(t.allocSecs, 1);
   const taskState = dateStr ? getTaskStateForDate(t, dateStr) : (t.state || 'idle');
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
-  let html = '', offset = 0;
+  // Determine anchor (first work start) for mapping segments into the allocated window
+  const firstWorkStartTs = segments.reduce((min, seg) => {
+    if (seg.type !== 'work' || !seg.startTs) return min;
+    return min === null || seg.startTs < min ? seg.startTs : min;
+  }, null);
+  const startMs = firstWorkStartTs || Date.now();
+
+  // Work progress: continuous bar from left representing total worked / allocSecs
+  const worked = getRealWorkedSecs(t, dateStr);
+  const workPct = Math.min((worked / span) * 100, 100);
+  const workColor = taskState === 'done' ? 'var(--done)' : 'var(--active)';
+  let html = '';
+  html += `<div class="work-progress" style="position:absolute;left:0;width:${workPct.toFixed(3)}%;height:100%;background:${workColor};"></div>`;
+
+  // Break markers: render a small marker at the exact cumulative work point when the break started
+  let cumulativeWork = 0;
   segments.forEach((seg, i) => {
-    const segSecs = getSegmentSecs(seg);
-    const w = (segSecs / span) * 100;
-    if (w < 0.01) return;
     if (seg.type === 'work') {
-      const color = taskState === 'done' ? 'var(--done)' : 'var(--active)';
-      html += `<div style="position:absolute;left:${offset.toFixed(3)}%;width:${w.toFixed(3)}%;height:100%;background:${color};"></div>`;
-    } else {
-      const isLive = !seg.endTs;
-      const isOverrun = seg.overrun;
-      const dateArg = dateStr ? JSON.stringify(dateStr) : 'null';
-      html += `<div class="brk-seg${isLive?' live':''}${isOverrun?' overrun':''}"
-        style="position:absolute;left:${offset.toFixed(3)}%;width:${w.toFixed(3)}%;height:100%;"
-        onclick="toggleTip(${t.id},${i},this,event,${dateArg})"></div>`;
+      cumulativeWork += getSegmentSecs(seg);
+      return;
     }
-    offset += w;
+    const isLive = !seg.endTs;
+    const isOverrun = seg.overrun;
+    const dateArg = dateStr ? JSON.stringify(dateStr) : 'null';
+    const left = (cumulativeWork / span) * 100;
+    const leftClamped = Math.max(0, Math.min(100, left));
+    html += `<div class="brk-marker${isLive?' live':''}${isOverrun?' overrun':''}"
+      style="left:${leftClamped.toFixed(3)}%;"
+      onclick="toggleTip(${t.id},${i},this,event,${dateArg})"></div>`;
   });
   
   // Render split points as visual indicators (non-draggable, shown for reference)
@@ -6094,7 +6193,7 @@ function buildBarHTML(t, dateStr = null) {
       const leftPercent = split.position * 100;
       const secsAtSplit = Math.round(split.position * t.allocSecs);
       const fmtTime = fmtF(secsAtSplit);
-      html += `<div class="split-point" style="left:${leftPercent.toFixed(3)}%;pointer-events:none;">
+      html += `<div class="split-point" style="left:${leftPercent.toFixed(3)}%;pointer-events:none;z-index:20;">
         <div class="split-tooltip">Split at ${fmtTime}</div>
       </div>`;
     });
@@ -6162,22 +6261,41 @@ function updateProgressBarsSmooth() {
     const barOuter = card.querySelector('.bar-outer');
     if (!barOuter) return;
     
+    const segments = getTaskSegmentsForDate(t, currentDateStr) || (t.segments || []);
+    const span = Math.max(t.allocSecs, 1);
+    // update work-progress width
+    const workNode = barOuter.querySelector('.work-progress');
     const worked = getRealWorkedSecs(t, currentDateStr);
-    const total = Math.max(t.allocSecs, 1);
-    const percentage = Math.min((worked / total) * 100, 100);
-    
-    // Update active work bar width smoothly
-    const workBars = barOuter.querySelectorAll('div[style*="background"]');
-    if (workBars.length > 0) {
-      workBars.forEach(bar => {
-        const style = bar.getAttribute('style') || '';
-        if (style.includes('var(--active)') || style.includes('var(--done)')) {
-          const currentWidth = parseFloat(bar.style.width);
-          const targetWidth = percentage;
-          if (Math.abs(currentWidth - targetWidth) > 0.1) {
-            bar.style.width = targetWidth + '%';
-          }
-        }
+    const workPct = Math.min((worked / span) * 100, 100);
+    if (workNode) {
+      const currentWidth = parseFloat(workNode.style.width) || 0;
+      if (Math.abs(currentWidth - workPct) > 0.05) workNode.style.width = workPct + '%';
+    }
+
+    // update break marker positions by cumulative work at each break start
+    const breakNodes = Array.from(barOuter.querySelectorAll('.brk-marker'));
+    let cumulativeWork = 0;
+    let bIdx = 0;
+    segments.forEach(seg => {
+      if (seg.type === 'work') {
+        cumulativeWork += getSegmentSecs(seg);
+        return;
+      }
+      const left = (cumulativeWork / span) * 100;
+      const node = breakNodes[bIdx++];
+      if (node) {
+        node.style.left = Math.max(0, Math.min(100, left)).toFixed(3) + '%';
+        node.classList.toggle('live', !seg.endTs);
+        node.classList.toggle('overrun', !!seg.overrun);
+      }
+    });
+
+    // update split points
+    if (t.splits && t.splits.length > 0) {
+      const splitNodes = Array.from(barOuter.querySelectorAll('.split-point'));
+      t.splits.forEach((split, i) => {
+        const node = splitNodes[i];
+        if (node) node.style.left = (split.position * 100).toFixed(3) + '%';
       });
     }
   });
@@ -6232,7 +6350,17 @@ function updateLiveFlow() {
     }
 
     const barTrack = el.querySelector('.bar-track');
-    if (barTrack) barTrack.innerHTML = buildBarHTML(t, currentDateStr);
+    if (barTrack) {
+        // Only rebuild the bar DOM when the segment structure changes
+        const segments = getTaskSegmentsForDate(t, currentDateStr) || (t.segments || []);
+        const breakCount = segments.filter(s=>s.type==='break').length;
+        const expectedChildCount = 1 + breakCount + (t.splits ? t.splits.length : 0); // work-progress + breaks + splits
+        if (barTrack.children.length !== expectedChildCount) {
+          const newHTML = buildBarHTML(t, currentDateStr);
+          barTrack._lastHTML = newHTML;
+          barTrack.innerHTML = newHTML;
+        }
+    }
 
     const isOverrun = taskState==='paused' && live && live.overrun;
     el.classList.toggle('break-overrun', isOverrun);
@@ -6298,6 +6426,11 @@ function updateFlowStats() {
 function renderFlowList() {
   closeTip();
   const list = document.getElementById('task-list');
+  if (list) {
+    list.classList.toggle('grid-view', currentViewMode === 'grid');
+    list.classList.toggle('card-view', currentViewMode === 'card');
+    list.classList.toggle('list-view', currentViewMode === 'list');
+  }
   list.innerHTML = '';
   
   // ===== Normalize calendar tasks for timer display =====
@@ -8860,7 +8993,7 @@ function renderValuesPage() {
       <div style="font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase;">💎 Our Mission & Values</div>
       <div style="font-size: 12px; color: var(--muted2); margin-top: 4px;">Why Tempow is built the way it is</div>
     </div>
-    <div style="padding: 28px 40px; max-width: 1000px;">
+    <div style="padding: 28px 40px; max-width: 1000px; margin: 0 auto;">
 
       <!-- ═══ MISSION STATEMENT ═══ -->
       <div style="background: linear-gradient(135deg, var(--active-dim) 0%, rgba(79,174,231,0.06) 100%); border: 2px solid var(--active); border-radius: 12px; padding: 32px; margin-bottom: 40px; text-align: center;">
@@ -9872,10 +10005,7 @@ function restoreCollapsibleStates() {
     syncElapsedTime();
   }, 5000);
   
-  // Smooth progress bar animation every 200ms for continuous visual feedback
-  setInterval(() => {
-    updateProgressBarsSmooth();
-  }, 200);
+  // Visual updates are driven by RAF when tasks are active (startVisualLoop())
   
   // Auto-save task data every 5 seconds
   // ===== SAFE PERSISTENCE: Only saves if data has been successfully loaded =====
