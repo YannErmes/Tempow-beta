@@ -4210,6 +4210,23 @@ function liveSegment(t, dateStr = null) {
   return last.endTs ? null : last;
 }
 
+function getSegmentSecs(seg) {
+  if (!seg) return 0;
+  if (seg.endTs || !seg.startTs) return seg.secs || 0;
+  const elapsed = Math.floor((Date.now() - seg.startTs) / 1000);
+  return Math.max(seg.secs || 0, elapsed);
+}
+
+function getRealWorkedSecs(t, dateStr = null) {
+  const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
+  return segments.filter(s => s.type === 'work').reduce((sum, seg) => sum + getSegmentSecs(seg), 0);
+}
+
+function getRealBreakSecs(t, dateStr = null) {
+  const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
+  return segments.filter(s => s.type === 'break').reduce((sum, seg) => sum + getSegmentSecs(seg), 0);
+}
+
 // ╔════════════════════════════════════════════════════════════════╗
 // ║ DAY START & GAP TRACKING                                       ║
 // ║ Track when user starts their day and gaps between tasks        ║
@@ -4686,7 +4703,7 @@ function loadMinimizedPanelState() {
 function getEstimatedEndTime(t, dateStr = null) {
   const taskState = dateStr ? getTaskStateForDate(t, dateStr) : (t.state || 'idle');
   if (taskState !== 'running') return null;
-  const worked = totalWorkedSecs(t, dateStr);
+  const worked = getRealWorkedSecs(t, dateStr);
   const remaining = Math.max(t.allocSecs - worked, 0);
   if (remaining === 0) return null;
   const endMs = Date.now() + (remaining * 1000);
@@ -5679,7 +5696,10 @@ function _commitPause(id, note, limitSecs) {
   const currentDateStr = getContextDateStr();
   if (!t || getCurrentTaskState(t)!=='running') return;
   const live = liveSegment(t, currentDateStr);
-  if (live) live.endTs = Date.now();
+  if (live) {
+    live.secs = getSegmentSecs(live);
+    live.endTs = Date.now();
+  }
   setCurrentTaskState(t, 'paused');
   const segments = getCurrentTaskSegmentsMutable(t);
   segments.push({type:'break', secs:0, startTs:Date.now(), endTs:null, note, breakLimitSecs:limitSecs, overrun:false});
@@ -5701,7 +5721,10 @@ function _stopTaskPermanently(id, note) {
   const currentDateStr = getContextDateStr();
   if (!t || getCurrentTaskState(t)!=='running') return;
   const live = liveSegment(t, currentDateStr);
-  if (live) live.endTs = Date.now();
+  if (live) {
+    live.secs = getSegmentSecs(live);
+    live.endTs = Date.now();
+  }
   setCurrentTaskState(t, 'paused');
   const segments = getCurrentTaskSegmentsMutable(t);
   // Create a permanent break segment (ends immediately, no timer)
@@ -5724,7 +5747,10 @@ function resumeTask(id) {
   const currentDateStr = getContextDateStr();
   if (t && getCurrentTaskState(t)==='paused') {
     const live = liveSegment(t, currentDateStr);
-    if (live) live.endTs = Date.now();
+    if (live) {
+      live.secs = getSegmentSecs(live);
+      live.endTs = Date.now();
+    }
     setCurrentTaskState(t, 'running');
     const segments = getCurrentTaskSegmentsMutable(t);
     segments.push({type:'work', secs:0, startTs:Date.now(), endTs:null, note:'', breakLimitSecs:0});
@@ -5756,7 +5782,10 @@ function markDone(id) {
     return;
   }
   const live = liveSegment(t, currentDateStr);
-  if (live) live.endTs = Date.now();
+  if (live) {
+    live.secs = getSegmentSecs(live);
+    live.endTs = Date.now();
+  }
   setCurrentTaskState(t, 'done');
   stopRepeatingAlarm();
   playDing();
@@ -5854,7 +5883,7 @@ function ensureTick() {
         const live = liveSegment(t, currentDateStr);
         if (live) { live.secs++; any = true; }
 
-        if (taskState === 'running' && totalWorkedSecs(t, currentDateStr) >= t.allocSecs) {
+        if (taskState === 'running' && getRealWorkedSecs(t, currentDateStr) >= t.allocSecs) {
           if (live) live.endTs = Date.now();
           setCurrentTaskState(t, 'done');
           autoSyncCompletedTask(t);
@@ -5866,7 +5895,7 @@ function ensureTick() {
 
         // ── Split timing detection ──────────────────────────────────
         if (taskState === 'running' && (t.splits && t.splits.length > 0)) {
-          const workedSecs = totalWorkedSecs(t, currentDateStr);
+          const workedSecs = getRealWorkedSecs(t, currentDateStr);
           t.splits.forEach(split => {
             const splitAtSecs = split.position * t.allocSecs;
             // Check if just reached this split point (within 1 second)
@@ -6028,13 +6057,14 @@ function toggleTip(taskId, segIdx, segEl, event, dateStr = null) {
 
 // ── Bar rendering ─────────────────────────────────────
 function buildBarHTML(t, dateStr = null) {
-  const tb = totalBreakSecs(t, dateStr);
+  const tb = getRealBreakSecs(t, dateStr);
   const span = Math.max(t.allocSecs + tb, 1);
   const taskState = dateStr ? getTaskStateForDate(t, dateStr) : (t.state || 'idle');
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
   let html = '', offset = 0;
   segments.forEach((seg, i) => {
-    const w = (seg.secs / span) * 100;
+    const segSecs = getSegmentSecs(seg);
+    const w = (segSecs / span) * 100;
     if (w < 0.01) return;
     if (seg.type === 'work') {
       const color = taskState === 'done' ? 'var(--done)' : 'var(--active)';
@@ -6124,7 +6154,7 @@ function updateProgressBarsSmooth() {
     const barOuter = card.querySelector('.bar-outer');
     if (!barOuter) return;
     
-    const worked = totalWorkedSecs(t, currentDateStr);
+    const worked = getRealWorkedSecs(t, currentDateStr);
     const total = Math.max(t.allocSecs, 1);
     const percentage = Math.min((worked / total) * 100, 100);
     
@@ -6148,14 +6178,28 @@ function updateProgressBarsSmooth() {
 // ── Live update (no re-render) ────────────────────────
 function updateLiveFlow() {
   const currentDateStr = getContextDateStr();
+  let rerender = false;
   flowTasks.forEach(t => {
     const el = document.getElementById('flow-card-'+t.id); if (!el) return;
     const digs = el.querySelector('.timer-digits'), lbl = el.querySelector('.timer-label');
-    const worked = totalWorkedSecs(t, currentDateStr), brk = totalBreakSecs(t, currentDateStr);
+    const worked = getRealWorkedSecs(t, currentDateStr), brk = getRealBreakSecs(t, currentDateStr);
     const live = liveSegment(t, currentDateStr);
     const taskState = getCurrentTaskState(t);
 
     if (taskState === 'running') {
+      if (worked >= t.allocSecs) {
+        if (live) {
+          live.secs = worked;
+          live.endTs = Date.now();
+        }
+        setCurrentTaskState(t, 'done');
+        autoSyncCompletedTask(t);
+        playDing();
+        showDoneBanner(t.name);
+        rerender = true;
+        return;
+      }
+
       digs.textContent = fmtF(Math.max(t.allocSecs-worked,0)); lbl.textContent = 'remaining';
       
       // ╔════════════════════════════════════════════════════════════════╗
@@ -6193,6 +6237,10 @@ function updateLiveFlow() {
     const bi = el.querySelector('.break-info');
     if (bi) bi.innerHTML = brk>0 ? `· <span class="b-time">${fmtShortF(brk)}</span> break` : '';
   });
+
+  if (rerender) {
+    renderFlowList();
+  }
 }
 
 function getCurrentGapTime() {
@@ -6441,7 +6489,6 @@ function renderFlowList() {
           </div>
         </div>
       </div>
-      ${canDone && taskState !== 'done' ? `<button class="btn done-early" onclick="markDone(${t.id})" title="Mark as complete" style="position:absolute;top:10px;right:12px;z-index:25;padding:6px 8px;border-radius:8px;">✓</button>` : ''}
       ${!t.isUntimed ? `<div class="bar-outer"><div class="bar-track" style="position:relative;height:100%;overflow:hidden;">${buildBarHTML(t, currentDateStr)}</div></div>` : ''}
       <div class="controls"><span class="status-pill ${pillClass}">${pillText}</span>${ctrl}</div>`;
     list.appendChild(card);
