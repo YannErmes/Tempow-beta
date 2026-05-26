@@ -553,23 +553,38 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 }
 
 .section-toggle {
-  background: none;
-  border: none;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
   color: var(--muted2);
   cursor: pointer;
   font-size: 14px;
-  padding: 4px 8px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   margin-left: auto;
-  transition: color 0.2s, transform 0.2s;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.section-toggle::before {
+  content: '+';
+  display: inline-block;
+  font-size: 16px;
+  line-height: 1;
 }
 
 .section-toggle:hover {
   color: var(--text);
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.15);
 }
 
-.section-toggle.collapsed {
-  transform: rotate(180deg);
+.section-toggle.collapsed::before {
+  content: '−';
 }
 
 /* Make sections with headers */
@@ -2980,7 +2995,7 @@ body.text-mode .btn .btn-text {
         <div class="stat"><div class="stat-label">Completed</div><div class="stat-value" id="s-done">0</div></div>
       </div>
       <div style="display: flex; align-items: center; gap: 12px; margin-left: auto;">
-        <button class="section-toggle" onclick="toggleSection(this, 'hoursTrackerPanel')" title="Toggle hours tracker">▼</button>
+        <button class="section-toggle" onclick="toggleSection(this, 'hoursTrackerPanel')" title="Toggle hours tracker"></button>
       </div>
     </div>
   </div>
@@ -3026,7 +3041,7 @@ body.text-mode .btn .btn-text {
       <span style="font-size:10px;color:var(--muted);" id="flowLastSaved"></span>
     </div>
     <button class="settings-btn" onclick="openSettingsModal()" title="Display settings">⚙</button>
-    <button class="section-toggle" onclick="toggleSection(this, 'toolsPanel')" title="Toggle filters and view modes">▼</button>
+    <button class="section-toggle" onclick="toggleSection(this, 'toolsPanel')" title="Toggle filters and view modes"></button>
   </div>
 
   <!-- Filters and View Mode Panel (Collapsible) -->
@@ -3080,7 +3095,7 @@ body.text-mode .btn .btn-text {
   <div id="discardedPanelContainer" style="display: none; border-bottom: 1px solid var(--border);">
     <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 40px; background: var(--surface);">
       <span style="font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">⚠ Discarded tasks</span>
-      <button class="section-toggle" onclick="toggleSection(this, 'discardedPanel')" title="Toggle discarded tasks">▼</button>
+      <button class="section-toggle" onclick="toggleSection(this, 'discardedPanel')" title="Toggle discarded tasks"></button>
     </div>
     <div class="collapsible-section" id="discardedPanel">
       <div class="discarded-tasks-panel">
@@ -3093,7 +3108,7 @@ body.text-mode .btn .btn-text {
   <div id="trashPanel" style="display: none; border-bottom: 1px solid var(--border);">
     <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 40px; background: var(--surface);">
       <span style="font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">🗑 Trash (24h auto-delete)</span>
-      <button class="section-toggle" onclick="toggleSection(this, 'trashList')" title="Toggle trash">▼</button>
+      <button class="section-toggle" onclick="toggleSection(this, 'trashList')" title="Toggle trash"></button>
     </div>
     <div class="collapsible-section" id="trashList"></div>
   </div>
@@ -4236,11 +4251,11 @@ function fmtDurF(s) {
 // Segment helpers
 function totalWorkedSecs(t, dateStr = null) {
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
-  return segments.filter(s=>s.type==='work').reduce((a,s)=>a+s.secs,0);
+  return segments.filter(s => s.type === 'work').reduce((a, s) => a + getSegmentSecs(s), 0);
 }
 function totalBreakSecs(t, dateStr = null)  {
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
-  return segments.filter(s=>s.type==='break').reduce((a,s)=>a+s.secs,0);
+  return segments.filter(s => s.type === 'break').reduce((a, s) => a + getSegmentSecs(s), 0);
 }
 function liveSegment(t, dateStr = null) {
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
@@ -6206,7 +6221,7 @@ function buildBarHTML(t, dateStr = null) {
 
   // Work progress: continuous bar from left representing total worked / allocSecs
   const worked = getRealWorkedSecs(t, dateStr);
-  const workPct = Math.min((worked / span) * 100, 100);
+  const workPct = taskState === 'done' ? 100 : Math.min((worked / span) * 100, 100);
   const workColor = taskState === 'done' ? 'var(--done)' : 'var(--active)';
   let html = '';
   html += `<div class="work-progress" style="position:absolute;left:0;width:${workPct.toFixed(3)}%;height:100%;background:${workColor};"></div>`;
@@ -6307,7 +6322,7 @@ function updateProgressBarsSmooth() {
     // update work-progress width
     const workNode = barOuter.querySelector('.work-progress');
     const worked = getRealWorkedSecs(t, currentDateStr);
-    const workPct = Math.min((worked / span) * 100, 100);
+    const workPct = taskState === 'done' ? 100 : Math.min((worked / span) * 100, 100);
     if (workNode) {
       const currentWidth = parseFloat(workNode.style.width) || 0;
       if (Math.abs(currentWidth - workPct) > 0.05) workNode.style.width = workPct + '%';
@@ -6417,7 +6432,7 @@ function updateLiveFlow() {
     }
 
     if (!t.isUntimed) {
-      const progressPct = t.allocSecs > 0 ? Math.max(0, Math.min(100, Math.round((worked / t.allocSecs) * 100))) : 0;
+      const progressPct = taskState === 'done' ? 100 : (t.allocSecs > 0 ? Math.max(0, Math.min(100, Math.round((worked / t.allocSecs) * 100))) : 0);
       el.style.setProperty('--progress', progressPct);
     }
 
@@ -6473,7 +6488,7 @@ function updateFlowStats() {
   const currentDateStr = getContextDateStr();
   let worked = 0, brk = 0;
   const visibleTasks = allTasks.filter(t => !t.isMinimized && shouldShowTask(t));
-  visibleTasks.forEach(t => { worked += totalWorkedSecs(t, currentDateStr); brk += totalBreakSecs(t, currentDateStr); });
+  visibleTasks.forEach(t => { worked += getRealWorkedSecs(t, currentDateStr); brk += getRealBreakSecs(t, currentDateStr); });
 
   // Calculate total gaps (completed gaps + current ongoing gap)
   document.getElementById('s-total').textContent = visibleTasks.length;
@@ -6526,8 +6541,8 @@ function renderFlowList() {
   sortedTasks.forEach(t => {
     const taskState = getCurrentTaskState(t);
     const taskSegments = currentDateStr ? getTaskSegmentsForDate(t, currentDateStr) : (t.segments || []);
-    const worked = totalWorkedSecs(t, currentDateStr);
-    const brk = totalBreakSecs(t, currentDateStr);
+    const worked = getRealWorkedSecs(t, currentDateStr);
+    const brk = getRealBreakSecs(t, currentDateStr);
     const live = liveSegment(t, currentDateStr);
     const breakCount = taskSegments.filter(s=>s.type==='break').length;
     const remaining = Math.max(t.allocSecs-worked, 0);
@@ -6657,7 +6672,7 @@ function renderFlowList() {
     
     card.className = cardClass;
     card.id = 'flow-card-'+t.id;
-    const pct = t.allocSecs > 0 ? Math.max(0, Math.min(100, Math.round((worked / t.allocSecs) * 100))) : 0;
+    const pct = taskState === 'done' ? 100 : (t.allocSecs > 0 ? Math.max(0, Math.min(100, Math.round((worked / t.allocSecs) * 100))) : 0);
     card.style.setProperty('--progress', pct);
     // Draggable feature removed - only split point cursors are draggable
     
@@ -6704,7 +6719,7 @@ function renderFlowList() {
         const barTrack = barOuter.querySelector('.bar-track');
         if (barTrack) {
           barOuter.addEventListener('mouseenter', function(e) {
-            const worked = totalWorkedSecs(t, currentDateStr);
+            const worked = getRealWorkedSecs(t, currentDateStr);
             const total = t.allocSecs;
             const percentage = total > 0 ? Math.round((worked / total) * 100) : 0;
             
@@ -8332,7 +8347,9 @@ function renderReportsPage() {
         <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; font-weight: 600;">📥 Download Report</div>
         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
           <button class="data-btn" onclick="printReportToPDF()" style="padding: 9px 16px;">🖨️ Print Full Report (PDF)</button>
+          <button class="data-btn" onclick="exportReportHTML()" style="padding: 9px 16px;">🌐 Download Offline HTML Page</button>
         </div>
+        <div style="margin-top: 8px; color: var(--muted); font-size: 12px;">Save this file and open it locally to run the report offline. Cloud backup may still require internet.</div>
       </div>`;
   }
   
@@ -8430,6 +8447,12 @@ function exportReportCSV() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+function exportReportHTML() {
+  const filename = 'tempow-report-page-' + new Date().toISOString().slice(0,10) + '.html';
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  downloadTextFile(html, filename, 'text/html;charset=utf-8');
 }
 
 function getCloudSyncSettings() {
