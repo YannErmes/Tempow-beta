@@ -553,38 +553,23 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 }
 
 .section-toggle {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: none;
+  border: none;
   color: var(--muted2);
   cursor: pointer;
   font-size: 14px;
-  width: 30px;
-  height: 30px;
-  padding: 0;
+  padding: 4px 8px;
   margin-left: auto;
-  transition: color 0.2s, background 0.2s, border-color 0.2s;
+  transition: color 0.2s, transform 0.2s;
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.section-toggle::before {
-  content: '+';
-  display: inline-block;
-  font-size: 16px;
-  line-height: 1;
 }
 
 .section-toggle:hover {
   color: var(--text);
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.15);
 }
 
-.section-toggle.collapsed::before {
-  content: '−';
+.section-toggle.collapsed {
+  transform: rotate(180deg);
 }
 
 /* Make sections with headers */
@@ -1093,35 +1078,6 @@ body.text-mode .data-btn .btn-text {
 }
 #task-list.card-view .task-estimate {
   display: none;
-}
-
-#task-list.card-view .task-card {
-  position: relative;
-  overflow: visible;
-  border-radius: 12px;
-}
-#task-list.card-view .task-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  background: conic-gradient(from -90deg, var(--active) 0deg, var(--active) calc(var(--progress) * 1%), rgba(255,255,255,0.08) calc(var(--progress) * 1%), rgba(255,255,255,0.08) 100%);
-  z-index: 1;
-  pointer-events: none;
-}
-#task-list.card-view .task-card::after {
-  content: '';
-  position: absolute;
-  inset: 4px;
-  border-radius: 10px;
-  background: var(--surface);
-  z-index: 2;
-  pointer-events: none;
-}
-#task-list.card-view .task-card .task-card-inner-clip,
-#task-list.card-view .task-card .controls {
-  position: relative;
-  z-index: 3;
 }
 #task-list.card-view .controls {
   padding: 10px 12px;
@@ -1872,6 +1828,8 @@ body.text-mode .btn .btn-text {
 .pill-running { background:var(--active-dim); color:var(--active); }
 .pill-break   { background:var(--break-dim); color:var(--break); }
 .pill-done    { background:var(--done-dim); color:var(--done); }
+.pill-awaiting { background: rgba(245,166,35,0.12); color: var(--break); }
+.pill-no { background: rgba(255,94,108,0.12); color: #ff5e6c; }
 .pill-idle    { background:var(--surface2); color:var(--muted); }
 
 /* Tempow modal */
@@ -2995,7 +2953,7 @@ body.text-mode .btn .btn-text {
         <div class="stat"><div class="stat-label">Completed</div><div class="stat-value" id="s-done">0</div></div>
       </div>
       <div style="display: flex; align-items: center; gap: 12px; margin-left: auto;">
-        <button class="section-toggle" onclick="toggleSection(this, 'hoursTrackerPanel')" title="Toggle hours tracker"></button>
+        <button class="section-toggle" onclick="toggleSection(this, 'hoursTrackerPanel')" title="Toggle hours tracker">▼</button>
       </div>
     </div>
   </div>
@@ -3041,7 +2999,7 @@ body.text-mode .btn .btn-text {
       <span style="font-size:10px;color:var(--muted);" id="flowLastSaved"></span>
     </div>
     <button class="settings-btn" onclick="openSettingsModal()" title="Display settings">⚙</button>
-    <button class="section-toggle" onclick="toggleSection(this, 'toolsPanel')" title="Toggle filters and view modes"></button>
+    <button class="section-toggle" onclick="toggleSection(this, 'toolsPanel')" title="Toggle filters and view modes">▼</button>
   </div>
 
   <!-- Filters and View Mode Panel (Collapsible) -->
@@ -3095,7 +3053,7 @@ body.text-mode .btn .btn-text {
   <div id="discardedPanelContainer" style="display: none; border-bottom: 1px solid var(--border);">
     <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 40px; background: var(--surface);">
       <span style="font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">⚠ Discarded tasks</span>
-      <button class="section-toggle" onclick="toggleSection(this, 'discardedPanel')" title="Toggle discarded tasks"></button>
+      <button class="section-toggle" onclick="toggleSection(this, 'discardedPanel')" title="Toggle discarded tasks">▼</button>
     </div>
     <div class="collapsible-section" id="discardedPanel">
       <div class="discarded-tasks-panel">
@@ -3108,7 +3066,7 @@ body.text-mode .btn .btn-text {
   <div id="trashPanel" style="display: none; border-bottom: 1px solid var(--border);">
     <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 40px; background: var(--surface);">
       <span style="font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">🗑 Trash (24h auto-delete)</span>
-      <button class="section-toggle" onclick="toggleSection(this, 'trashList')" title="Toggle trash"></button>
+      <button class="section-toggle" onclick="toggleSection(this, 'trashList')" title="Toggle trash">▼</button>
     </div>
     <div class="collapsible-section" id="trashList"></div>
   </div>
@@ -3188,6 +3146,10 @@ body.text-mode .btn .btn-text {
         <div class="clock-form-row">
           <label>Task name</label>
           <input id="taskName" type="text" placeholder="e.g. Meeting" style="flex: 1; padding: 8px; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-size: 12px;" />
+        </div>
+        <div class="clock-form-row">
+          <label>Goal</label>
+          <input id="taskGoal" type="text" placeholder="See Our Values page to learn how goals work" style="flex: 1; padding: 8px; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-size: 12px;" />
         </div>
         <div class="clock-form-row">
           <label>Duration</label>
@@ -3458,6 +3420,11 @@ body.text-mode .btn .btn-text {
         </div>
       </div>
       <div class="field">
+        <label>Goal</label>
+        <input type="text" id="calTaskGoal" placeholder="See Our Values page to learn how goals work" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px;" />
+        <div style="font-size: 10px; color: var(--muted); margin-top: 6px;">Use this field to describe the result you want by the end of the allocated time.</div>
+      </div>
+      <div class="field">
         <label>Notes</label>
         <textarea id="calTaskNotes" placeholder="Optional notes..." rows="3"></textarea>
       </div>
@@ -3529,6 +3496,7 @@ body.text-mode .btn .btn-text {
   <div class="modal">
     <h2>New task</h2>
     <div class="field"><label>Task name</label><input type="text" id="inp-name" placeholder="e.g. Write project brief" /></div>
+    <div class="field"><label>Goal</label><input type="text" id="inp-goal" placeholder="e.g. Record the full video" /></div>
     <div class="field">
       <label>Task type</label>
       <div class="task-type-toggle">
@@ -4251,11 +4219,15 @@ function fmtDurF(s) {
 // Segment helpers
 function totalWorkedSecs(t, dateStr = null) {
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
-  return segments.filter(s => s.type === 'work').reduce((a, s) => a + getSegmentSecs(s), 0);
+  return segments
+    .filter(s => s.type === 'work')
+    .reduce((a, s) => a + getSegmentSecs(s), 0);
 }
 function totalBreakSecs(t, dateStr = null)  {
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
-  return segments.filter(s => s.type === 'break').reduce((a, s) => a + getSegmentSecs(s), 0);
+  return segments
+    .filter(s => s.type === 'break')
+    .reduce((a, s) => a + getSegmentSecs(s), 0);
 }
 function liveSegment(t, dateStr = null) {
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
@@ -4891,6 +4863,7 @@ document.addEventListener('click', e=>{
 
 function addFlowTask() {
   const name=document.getElementById('inp-name').value.trim();
+  const goal=document.getElementById('inp-goal').value.trim();
   const isUntimed = document.querySelector('.task-type-btn.active').dataset.type === 'untimed';
   const hours = isUntimed ? 0 : parseInt(document.getElementById('inp-dur-hours').value) || 0;
   const minutes = isUntimed ? 0 : parseInt(document.getElementById('inp-dur-minutes').value) || 0;
@@ -4918,6 +4891,8 @@ function addFlowTask() {
   const taskObj = { 
     id: Date.now() + Math.random(),
     name, 
+    goal: goal || '',
+    goalStatus: '',
     allocSecs: dur * 60, 
     state: 'idle', 
     segments: [], 
@@ -5837,7 +5812,7 @@ function markDone(id) {
   const t = flowTasks.find(x => x.id===id);
   if (!t) return;
   const currentDateStr = getContextDateStr();
-  const worked = getRealWorkedSecs(t, currentDateStr);
+  const worked = totalWorkedSecs(t, currentDateStr);
   if (worked < t.allocSecs * 0.5) {
     alert(`You need to complete at least 50% of the allocated time before marking done.\n\nWorked: ${fmtDurF(worked)} / ${fmtDurF(t.allocSecs*0.5)} minimum.`);
     return;
@@ -5847,12 +5822,15 @@ function markDone(id) {
     live.secs = getSegmentSecs(live);
     live.endTs = Date.now();
   }
-  setCurrentTaskState(t, 'done');
-  updateProgressBarsSmooth();  // Immediately update progress bar to 100%
+  if (t.goal && !t.goalStatus) {
+    setCurrentTaskState(t, 'awaitingGoal');
+  } else {
+    setCurrentTaskState(t, 'done');
+    playDing();
+    showDoneBanner(t.name);
+    autoSyncCompletedTask(t);
+  }
   stopRepeatingAlarm();
-  playDing();
-  showDoneBanner(t.name);
-  autoSyncCompletedTask(t);
   renderFlowList();
   saveFlowData();
   closeDropdownAfterAction();
@@ -5861,16 +5839,32 @@ function markDone(id) {
 function markUntimeTaskDone(id) {
   const t = flowTasks.find(x => x.id===id);
   if (!t || !t.isUntimed) return;
-  
-  setCurrentTaskState(t, 'done');
-  updateProgressBarsSmooth();  // Immediately update progress bar
-  stopRepeatingAlarm();
-  playDing();
-  showDoneBanner(t.name);
-  autoSyncCompletedTask(t);
+  if (t.goal && !t.goalStatus) {
+    setCurrentTaskState(t, 'awaitingGoal');
+  } else {
+    setCurrentTaskState(t, 'done');
+    playDing();
+    showDoneBanner(t.name);
+    autoSyncCompletedTask(t);
+  }
   renderFlowList();
   saveFlowData();
   closeDropdownAfterAction();
+}
+
+function confirmGoalResult(id, result) {
+  const t = flowTasks.find(x => x.id === id);
+  if (!t) return;
+  const cleaned = result === 'yes' ? 'yes' : 'no';
+  t.goalStatus = cleaned;
+  setCurrentTaskState(t, 'done');
+  if (cleaned === 'yes') {
+    autoSyncCompletedTask(t);
+    playDing();
+    showDoneBanner(t.name);
+  }
+  saveFlowData();
+  renderFlowList();
 }
 
 function deleteFlowTask(id) {
@@ -5940,35 +5934,28 @@ function ensureTick() {
   globalTick = setInterval(() => {
     let any = false;
     const currentDateStr = getContextDateStr();
-    const now = Date.now();
-    
     flowTasks.forEach(t => {
       const taskState = getCurrentTaskState(t);
       if (taskState === 'running' || taskState === 'paused') {
         const live = liveSegment(t, currentDateStr);
         if (live) { live.secs++; any = true; }
 
-        // ╔════════════════════════════════════════════════════════════════╗
-        // ║ ALWAYS CHECK COMPLETION BASED ON REAL TIME DIFFERENCE        ║
-        // ║ Start Time + Allocated Time = Complete Time                  ║
-        // ╚════════════════════════════════════════════════════════════════╝
-        if (taskState === 'running') {
-          const totalWorked = getRealWorkedSecs(t, currentDateStr);
-          if (totalWorked >= t.allocSecs) {
-            if (live) {
-              // Update to exact real elapsed time
-              const realElapsedMs = now - live.startTs;
-              const realElapsedSecs = Math.floor(realElapsedMs / 1000);
-              live.secs = Math.max(live.secs, realElapsedSecs);
-              live.endTs = now;
-            }
+        if (taskState === 'running' && getRealWorkedSecs(t, currentDateStr) >= t.allocSecs) {
+          if (live) {
+            live.secs = t.allocSecs;
+            live.endTs = live.startTs ? (live.startTs + t.allocSecs * 1000) : Date.now();
+          }
+          if (t.goal && !t.goalStatus) {
+            setCurrentTaskState(t, 'awaitingGoal');
+            showGoalReviewBanner(t.name);
+          } else {
             setCurrentTaskState(t, 'done');
             autoSyncCompletedTask(t);
             playDing();
             showDoneBanner(t.name);
-            renderFlowList();
-            return;
           }
+          renderFlowList();
+          return;
         }
 
         // ── Split timing detection ──────────────────────────────────
@@ -6160,6 +6147,14 @@ function showDoneBanner(taskName) {
   setTimeout(() => banner.classList.remove('visible'), 5000);
 }
 
+function showGoalReviewBanner(taskName) {
+  const banner = document.getElementById('doneBanner');
+  const txt    = document.getElementById('doneBannerText');
+  txt.textContent = '⏳ "' + taskName + '" — goal review required.';
+  banner.classList.add('visible');
+  setTimeout(() => banner.classList.remove('visible'), 5000);
+}
+
 // ── Tooltip ───────────────────────────────────────────
 function closeTip() {
   openTip = null;
@@ -6221,7 +6216,7 @@ function buildBarHTML(t, dateStr = null) {
 
   // Work progress: continuous bar from left representing total worked / allocSecs
   const worked = getRealWorkedSecs(t, dateStr);
-  const workPct = taskState === 'done' ? 100 : Math.min((worked / span) * 100, 100);
+  const workPct = Math.min((worked / span) * 100, 100);
   const workColor = taskState === 'done' ? 'var(--done)' : 'var(--active)';
   let html = '';
   html += `<div class="work-progress" style="position:absolute;left:0;width:${workPct.toFixed(3)}%;height:100%;background:${workColor};"></div>`;
@@ -6304,12 +6299,12 @@ function addNewSplit(taskId) {
 function updateProgressBarsSmooth() {
   const currentDateStr = getContextDateStr();
   
-  // Find all running/paused/done tasks and smoothly update their bars
+  // Find all running/paused tasks and smoothly update their bars
   flowTasks.forEach(t => {
     if (t.isUntimed) return;
     
     const taskState = getTaskStateForDate(t, currentDateStr);
-    if (taskState !== 'running' && taskState !== 'paused' && taskState !== 'done') return;
+    if (taskState !== 'running' && taskState !== 'paused') return;
     
     const card = document.getElementById('flow-card-' + t.id);
     if (!card) return;
@@ -6322,7 +6317,7 @@ function updateProgressBarsSmooth() {
     // update work-progress width
     const workNode = barOuter.querySelector('.work-progress');
     const worked = getRealWorkedSecs(t, currentDateStr);
-    const workPct = taskState === 'done' ? 100 : Math.min((worked / span) * 100, 100);
+    const workPct = Math.min((worked / span) * 100, 100);
     if (workNode) {
       const currentWidth = parseFloat(workNode.style.width) || 0;
       if (Math.abs(currentWidth - workPct) > 0.05) workNode.style.width = workPct + '%';
@@ -6431,11 +6426,6 @@ function updateLiveFlow() {
         }
     }
 
-    if (!t.isUntimed) {
-      const progressPct = taskState === 'done' ? 100 : (t.allocSecs > 0 ? Math.max(0, Math.min(100, Math.round((worked / t.allocSecs) * 100))) : 0);
-      el.style.setProperty('--progress', progressPct);
-    }
-
     const isOverrun = taskState==='paused' && live && live.overrun;
     el.classList.toggle('break-overrun', isOverrun);
 
@@ -6488,7 +6478,7 @@ function updateFlowStats() {
   const currentDateStr = getContextDateStr();
   let worked = 0, brk = 0;
   const visibleTasks = allTasks.filter(t => !t.isMinimized && shouldShowTask(t));
-  visibleTasks.forEach(t => { worked += getRealWorkedSecs(t, currentDateStr); brk += getRealBreakSecs(t, currentDateStr); });
+  visibleTasks.forEach(t => { worked += totalWorkedSecs(t, currentDateStr); brk += totalBreakSecs(t, currentDateStr); });
 
   // Calculate total gaps (completed gaps + current ongoing gap)
   document.getElementById('s-total').textContent = visibleTasks.length;
@@ -6526,9 +6516,9 @@ function renderFlowList() {
   
   // Sort tasks: running > paused (break) > idle > done (FULLY AUTOMATIC)
   const sortedTasks = [...filteredTasks].sort((a, b) => {
-    const stateOrder = {running: 0, paused: 1, idle: 2, done: 3};
-    const orderA = stateOrder[getCurrentTaskState(a)] ?? 4;
-    const orderB = stateOrder[getCurrentTaskState(b)] ?? 4;
+    const stateOrder = {running: 0, paused: 1, awaitingGoal: 2, idle: 3, done: 4};
+    const orderA = stateOrder[getCurrentTaskState(a)] ?? 5;
+    const orderB = stateOrder[getCurrentTaskState(b)] ?? 5;
     if (orderA !== orderB) return orderA - orderB;
 
     const timeA = getTaskScheduleTimestamp(a);
@@ -6541,8 +6531,8 @@ function renderFlowList() {
   sortedTasks.forEach(t => {
     const taskState = getCurrentTaskState(t);
     const taskSegments = currentDateStr ? getTaskSegmentsForDate(t, currentDateStr) : (t.segments || []);
-    const worked = getRealWorkedSecs(t, currentDateStr);
-    const brk = getRealBreakSecs(t, currentDateStr);
+    const worked = totalWorkedSecs(t, currentDateStr);
+    const brk = totalBreakSecs(t, currentDateStr);
     const live = liveSegment(t, currentDateStr);
     const breakCount = taskSegments.filter(s=>s.type==='break').length;
     const remaining = Math.max(t.allocSecs-worked, 0);
@@ -6573,8 +6563,13 @@ function renderFlowList() {
       digsText = fmtF(remaining); labelText = taskState==='done'?'done':'remaining';
     }
 
-    const pillClass = {running:'pill-running',paused:'pill-break',done:'pill-done',idle:'pill-idle'}[taskState];
-    const pillText  = {running:'Running',paused:'Break',done:'Done',idle:'Idle'}[taskState];
+    const displayState = t.state === 'awaitingGoal' ? 'awaitingGoal' : taskState;
+    const pillClass = displayState === 'awaitingGoal' ? 'pill-awaiting'
+      : displayState === 'done' ? (t.goalStatus === 'yes' ? 'pill-done' : t.goalStatus === 'no' ? 'pill-no' : 'pill-done')
+      : {running:'pill-running',paused:'pill-break',idle:'pill-idle'}[displayState] || 'pill-idle';
+    const pillText = displayState === 'awaitingGoal' ? 'Goal review'
+      : displayState === 'done' ? (t.goalStatus === 'yes' ? 'Done' : t.goalStatus === 'no' ? 'Goal missed' : 'Done')
+      : {running:'Running',paused:'Break',idle:'Idle'}[displayState] || 'Idle';
     const inTray = tray.some(x=>x.id===t.id);
 
     const canDone = (taskState==='running'||taskState==='paused') && worked >= t.allocSecs*0.5;
@@ -6672,8 +6667,6 @@ function renderFlowList() {
     
     card.className = cardClass;
     card.id = 'flow-card-'+t.id;
-    const pct = taskState === 'done' ? 100 : (t.allocSecs > 0 ? Math.max(0, Math.min(100, Math.round((worked / t.allocSecs) * 100))) : 0);
-    card.style.setProperty('--progress', pct);
     // Draggable feature removed - only split point cursors are draggable
     
     // Generate task metadata
@@ -6685,8 +6678,28 @@ function renderFlowList() {
     } else {
       metaHTML = `<span style="color: var(--muted); font-size: 11px;">No time limit • Checklist item</span>`;
     }
+    if (t.goal) {
+      metaHTML += `<span style="color: var(--text); font-size: 11px; margin-left: 8px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;">🎯 ${t.goal.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
+    }
     if (t.notes) {
       metaHTML += `<span style="color: var(--active); font-size: 11px; margin-left: 8px;">📝 Has notes</span>`;
+    }
+
+    let goalPromptHTML = '';
+    if (t.state === 'awaitingGoal' && t.goal) {
+      goalPromptHTML = `
+        <div style="padding: 12px; margin: 12px 0 0 0; border: 1px solid var(--border); border-radius: 10px; background: var(--surface);">
+          <div style="font-size: 12px; color: var(--text); font-weight: 600; margin-bottom: 8px;">Your goal</div>
+          <div style="font-size: 12px; color: var(--muted); margin-bottom: 14px;">${t.goal.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+          <div style="font-size: 12px; color: var(--text); font-weight: 600; margin-bottom: 10px;">Did you hit the goal?</div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <button class="btn" onclick="confirmGoalResult(${t.id}, 'yes')">Yes</button>
+            <button class="btn danger" onclick="confirmGoalResult(${t.id}, 'no')">No</button>
+          </div>
+        </div>`;
+    } else if (t.goal && t.goalStatus) {
+      const goalStateText = t.goalStatus === 'yes' ? 'Hit' : 'Missed';
+      goalPromptHTML = `<div style="font-size: 11px; color: ${t.goalStatus === 'yes' ? 'var(--active)' : '#ff5e6c'}; margin-top: 10px;">🎯 ${t.goal.replace(/</g,'&lt;').replace(/>/g,'&gt;')} — ${goalStateText}</div>`;
     }
     
     card.innerHTML = `
@@ -6701,6 +6714,7 @@ function renderFlowList() {
               </div>
             </div>
           </div>
+          ${goalPromptHTML}
           <div class="timer-block">
             <div class="timer-digits">${digsText}</div>
             <div class="timer-label">${labelText}</div>
@@ -6719,7 +6733,7 @@ function renderFlowList() {
         const barTrack = barOuter.querySelector('.bar-track');
         if (barTrack) {
           barOuter.addEventListener('mouseenter', function(e) {
-            const worked = getRealWorkedSecs(t, currentDateStr);
+            const worked = totalWorkedSecs(t, currentDateStr);
             const total = t.allocSecs;
             const percentage = total > 0 ? Math.round((worked / total) * 100) : 0;
             
@@ -6751,7 +6765,6 @@ function renderFlowList() {
         }
       }
     }
-
   });
   updateFlowStats();
   updateHoursTracker();
@@ -7263,8 +7276,8 @@ function clockFindSlotInWindow(windowId, durationSec) {
   return null;
 }
 
-function clockShowTaskPlacementModal(name, durationSec, color) {
-  pendingTaskToAdd = { name, durationSec, color };
+function clockShowTaskPlacementModal(name, durationSec, color, goal = '') {
+  pendingTaskToAdd = { name, durationSec, color, goal };
   const modalContent = document.getElementById('modalContent');
   modalContent.innerHTML = `<div style="margin-bottom:12px;font-weight:600;color:var(--text)">${name} — ${clockFormatHMS(durationSec)}</div>`;
   const windows = clockGetAvailabilityIntervals();
@@ -7305,7 +7318,7 @@ function clockShowTaskPlacementModal(name, durationSec, color) {
 
 function clockCommitTaskToWindow() {
   if (!selectedWindowForTask || !pendingTaskToAdd) return;
-  const { name, durationSec, color } = pendingTaskToAdd;
+  const { name, durationSec, color, goal } = pendingTaskToAdd;
   const slot = clockFindSlotInWindow(selectedWindowForTask, durationSec);
   if (slot === null) {
     alert('Not enough space in selected window.');
@@ -7317,7 +7330,9 @@ function clockCommitTaskToWindow() {
     start: slot,
     duration: durationSec,
     color: color || document.getElementById('taskColor').value,
-    overlap: false
+    overlap: false,
+    goal: goal || '',
+    goalStatus: ''
   };
   clockTasks.push(newTask);
   clockTasks.sort((a, b) => a.start - b.start);
@@ -7373,6 +7388,7 @@ function clockUpdateDurationPreview() {
 
 document.getElementById('addTask')?.addEventListener('click', () => {
   const name = document.getElementById('taskName').value.trim() || 'Task';
+  const goal = document.getElementById('taskGoal').value.trim();
   const h = parseInt(document.getElementById('durationHours').value) || 0;
   const m = parseInt(document.getElementById('durationMinutes').value) || 0;
   const s = parseInt(document.getElementById('durationSeconds').value) || 0;
@@ -7382,7 +7398,7 @@ document.getElementById('addTask')?.addEventListener('click', () => {
     return;
   }
   const color = document.getElementById('taskColor').value;
-  clockShowTaskPlacementModal(name, durationSec, color);
+  clockShowTaskPlacementModal(name, durationSec, color, goal);
 });
 
 document.getElementById('randomColor')?.addEventListener('click', () => {
@@ -8055,6 +8071,7 @@ function renderReportsPage() {
   });
   
   const doneTasks = filteredTasks.filter(t => t.state === 'done');
+  const awaitingGoalTasks = filteredTasks.filter(t => t.state === 'awaitingGoal');
   const runningTasks = filteredTasks.filter(t => t.state === 'running');
   const pausedTasks = filteredTasks.filter(t => t.state === 'paused');
   const idleTasks = filteredTasks.filter(t => t.state === 'idle');
@@ -8146,6 +8163,15 @@ function renderReportsPage() {
               <div style="width: ${(pausedTasks.length / filteredTasks.length) * 100}%; height: 100%; background: var(--break);"></div>
             </div>
           </div>
+          <div style="background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.3); border-radius: 10px; padding: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="font-size: 11px; color: var(--break); text-transform: uppercase; font-weight: 600;">⏳ Goal review</div>
+              <div style="font-size: 18px; color: var(--break); font-weight: 700;">${awaitingGoalTasks.length}</div>
+            </div>
+            <div style="width: 100%; height: 4px; background: rgba(245,166,35,0.2); border-radius: 2px; overflow: hidden;">
+              <div style="width: ${(awaitingGoalTasks.length / filteredTasks.length) * 100}%; height: 100%; background: var(--break);"></div>
+            </div>
+          </div>
           <div style="background: #1e1e24; border: 1px solid var(--border2); border-radius: 10px; padding: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <div style="font-size: 11px; color: var(--muted2); text-transform: uppercase; font-weight: 600;">○ Idle</div>
@@ -8162,9 +8188,10 @@ function renderReportsPage() {
       <div style="margin-bottom: 32px;">
         <div style="font-size: 13px; font-weight: 600; color: var(--active); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px;">📋 Detailed Task Breakdown</div>
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
-          <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr; gap: 12px; padding: 14px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 600; letter-spacing: 0.05em;">
+          <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr; gap: 12px; padding: 14px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 600; letter-spacing: 0.05em;">
             <div>Task</div>
             <div>Status</div>
+            <div>Goal</div>
             <div>Worked</div>
             <div>Breaks</div>
             <div>Allocated</div>
@@ -8180,7 +8207,7 @@ function renderReportsPage() {
       const statusColor = t.state === 'done' ? 'var(--done)' : t.state === 'running' ? 'var(--active)' : t.state === 'paused' ? 'var(--break)' : 'var(--muted)';
       
       html += `
-        <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); align-items: center; font-size: 12px;">
+        <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); align-items: center; font-size: 12px;">
           <div>
             <div style="font-weight: 500; color: var(--text);">${t.name}</div>
             <div style="font-size: 10px; color: var(--muted); margin-top: 2px;">${fmtDurF(worked)} / ${fmtDurF(t.allocSecs)}</div>
@@ -8188,6 +8215,7 @@ function renderReportsPage() {
           <div>
             <span style="display: inline-block; padding: 3px 8px; background: ${statusColor}20; color: ${statusColor}; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase;">${status}</span>
           </div>
+          <div style="color: var(--muted2); font-size: 11px;">${t.goal ? t.goal.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '-'}</div>
           <div style="color: var(--active); font-weight: 500;">${fmtDurF(worked)}</div>
           <div style="color: var(--break); font-weight: 500;">${breakCount}x</div>
           <div style="color: var(--muted2);">${fmtDurF(t.allocSecs)}</div>
@@ -8340,16 +8368,111 @@ function renderReportsPage() {
           opacity: 0.6;
           cursor: not-allowed;
         }
-      </style>
+      </style>`;
+
+    // ═══ HOURS BY TASK ═══
+    
+    const tasksByName = {};
+    filteredTasks.forEach(t => {
+      if (!tasksByName[t.name]) {
+        tasksByName[t.name] = { workedSecs: 0, allocSecs: 0 };
+      }
+      tasksByName[t.name].workedSecs += totalWorkedSecs(t);
+      tasksByName[t.name].allocSecs += t.allocSecs || 0;
+    });
+    
+    const taskEntries = Object.entries(tasksByName)
+      .sort((a, b) => b[1].workedSecs - a[1].workedSecs);
+    
+    const donutColors = ['#5de0a8', '#4a8cff', '#f5a623', '#ff5e6c', '#a855f7', '#14b8a6', '#fb7185', '#f59e0b'];
+    const circumference = 2 * Math.PI * 88;
+    let donutOffset = 0;
+    const donutSlices = taskEntries.map(([taskName, taskData], idx) => {
+      const { workedSecs, allocSecs } = taskData;
+      const sliceLength = totalWorked > 0 ? (workedSecs / totalWorked) * circumference : 0;
+      const color = donutColors[idx % donutColors.length];
+      const titleText = `${taskName}: ${fmtF(workedSecs)} / ${fmtF(allocSecs)} allocated`;
+      const circle = '<circle cx="120" cy="120" r="88" fill="none" stroke="' + color + '" stroke-width="28" stroke-linecap="round" stroke-dasharray="' + sliceLength + ' ' + Math.max(circumference - sliceLength, 0) + '" stroke-dashoffset="' + donutOffset + '" transform="rotate(-90 120 120)" pointer-events="stroke">' +
+        '<title>' + titleText + '</title>' +
+      '</circle>';
+      donutOffset -= sliceLength;
+      return circle;
+    }).join('');
+    
+    const legendRows = taskEntries.map(([taskName, taskData], idx) => {
+      const { workedSecs, allocSecs } = taskData;
+      const percentage = totalWorked > 0 ? Math.round((workedSecs / totalWorked) * 100) : 0;
+      const color = donutColors[idx % donutColors.length];
+      return '<div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">' +
+        '<div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">' +
+          '<span style="width: 10px; height: 10px; border-radius: 999px; background: ' + color + '; display: inline-block;"></span>' +
+          '<div style="font-size: 13px; font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + taskName + '</div>' +
+        '</div>' +
+        '<div style="display: grid; gap: 4px; text-align: right;">' +
+          '<div style="font-size: 12px; color: var(--muted2);">' + fmtF(workedSecs) + ' / ' + fmtF(allocSecs) + '</div>' +
+          '<div style="font-size: 12px; color: var(--muted2); font-weight: 600;">' + percentage + '%</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    
+    html += `
+      <div style="margin-bottom: 32px;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--active); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px;">⏱ Hours by Task</div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+          <div style="display: grid; gap: 24px;">
+            <div style="display: grid; grid-template-columns: minmax(260px, 280px) 1fr; gap: 24px; align-items: center;">
+              <div style="position: relative; width: 100%; max-width: 280px; margin: 0 auto;">
+                <svg viewBox="0 0 240 240" style="width: 100%; height: auto; display: block;">
+                  <circle cx="120" cy="120" r="88" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="28" />
+                  ${donutSlices}
+                  <circle cx="120" cy="120" r="60" fill="var(--surface)" />
+                </svg>
+                <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text);">
+                  <div style="font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);">Total Time</div>
+                  <div style="font-size: 24px; font-weight: 700; margin-top: 6px;">${fmtF(totalWorked)}</div>
+                </div>
+              </div>
+              <div style="display: grid; gap: 10px;">
+                <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;">Task distribution</div>
+                ${legendRows}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-top: 18px;">
+          <div style="display: grid; grid-template-columns: 2.5fr 1.2fr 1fr; gap: 12px; padding: 14px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 600; letter-spacing: 0.05em;">
+            <div>Task Name</div>
+            <div>Total Hours</div>
+            <div>% of Total</div>
+          </div>`;
+    
+    if (taskEntries.length === 0) {
+      html += `<div style="padding: 32px 16px; text-align: center; color: var(--muted); font-size: 12px;">No tasks to display</div>`;
+    } else {
+      taskEntries.forEach(([taskName, workedSecs], idx) => {
+        const percentage = totalWorked > 0 ? Math.round((workedSecs / totalWorked) * 100) : 0;
+        const hours = workedSecs / 3600;
+        const rowBg = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
+        
+        html += `<div style="display: grid; grid-template-columns: 2.5fr 1.2fr 1fr; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); align-items: center; font-size: 12px; background: ${rowBg};">
+          <div>
+            <div style="font-weight: 500; color: var(--text);">${taskName}</div>
+          </div>
+          <div style="color: var(--active); font-weight: 600;">${hours.toFixed(2)} h</div>
+          <div style="color: var(--muted2);">${percentage}%</div>
+        </div>`;
+      });
+    }
+    
+    html += `</div>
+      </div>
 
       <!-- ═══ EXPORT OPTIONS ═══ -->
       <div style="padding-top: 20px; border-top: 1px solid var(--border);">
         <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; font-weight: 600;">📥 Download Report</div>
         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
           <button class="data-btn" onclick="printReportToPDF()" style="padding: 9px 16px;">🖨️ Print Full Report (PDF)</button>
-          <button class="data-btn" onclick="exportReportHTML()" style="padding: 9px 16px;">🌐 Download Offline HTML Page</button>
         </div>
-        <div style="margin-top: 8px; color: var(--muted); font-size: 12px;">Save this file and open it locally to run the report offline. Cloud backup may still require internet.</div>
       </div>`;
   }
   
@@ -8447,12 +8570,6 @@ function exportReportCSV() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-}
-
-function exportReportHTML() {
-  const filename = 'tempow-report-page-' + new Date().toISOString().slice(0,10) + '.html';
-  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-  downloadTextFile(html, filename, 'text/html;charset=utf-8');
 }
 
 function getCloudSyncSettings() {
@@ -8911,6 +9028,7 @@ function exportDetailedReport() {
     taskDetails: flowTasks.map(t => ({
       id: t.id,
       name: t.name,
+      goal: t.goal || '',
       state: t.state,
       allocatedSecs: t.allocSecs,
       workedSecs: totalWorkedSecs(t),
@@ -9138,6 +9256,31 @@ function renderValuesPage() {
         </div>
       </div>
 
+      <!-- ═══ GOAL CLARITY SECTION ═══ -->
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <div style="font-size: 28px; min-width: 40px;">📌</div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 15px; font-weight: 600; color: var(--text); margin: 0 0 8px 0;">Why Task Goals Matter</h3>
+            <p style="font-size: 13px; color: var(--text); line-height: 1.7; margin: 0 0 12px 0;">
+              Every task should answer the question: what does success look like in this time block? Goals turn raw hours into meaningful outcomes.
+            </p>
+            <ul style="font-size: 13px; color: var(--muted); line-height: 1.7; margin: 0; padding-left: 20px;">
+              <li>Writer: write 10 pages.</li>
+              <li>Runner: complete 100 miles.</li>
+              <li>YouTuber: record or edit the full video.</li>
+              <li>Trader: take three positions or finish a strategy draft.</li>
+            </ul>
+            <p style="font-size: 12px; color: var(--muted2); line-height: 1.7; margin: 12px 0 0 0;">
+              If you hit the goal before the timer ends, keep working until the allocated time is up. If the time ends before the goal is reached, keep going until the goal is complete.
+            </p>
+            <p style="font-size: 12px; color: var(--muted2); line-height: 1.7; margin: 12px 10px 0 0;">
+              When the task finishes, Tempow will ask: “Did you hit the goal?” You answer only <strong>Yes</strong> or <strong>No</strong> — there is no almost or approximate answer.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- ═══ VALUE 4: INEVITABLE RECOGNITION ═══ -->
       <div style="background: var(--done-dim); border: 1px solid var(--done); border-radius: 12px; padding: 20px; margin-bottom: 40px;">
         <div style="display: flex; align-items: flex-start; gap: 12px;">
@@ -9277,78 +9420,39 @@ function saveFlowData() {
 async function syncElapsedTime(overrideElapsedSeconds) {
   let updated = false;
   const currentDateStr = getContextDateStr();
-  const now = Date.now();
-  
-  console.log(`🔄 SYNC START - Date: ${currentDateStr}, Now: ${new Date(now).toLocaleTimeString()}`);
 
   // For each running or paused task, recalculate elapsed based on real-world time
   flowTasks.forEach(t => {
     const taskState = getCurrentTaskState(t);
-    
     if (taskState === 'running' || taskState === 'paused') {
-      const segments = getTaskSegmentsForDate(t, currentDateStr) || (t.segments || []);
       const live = liveSegment(t, currentDateStr);
-      
       if (live && live.startTs) {
         // Calculate real elapsed time in seconds from the actual start timestamp
-        const realElapsedMs = now - live.startTs;
+        const realElapsedMs = Date.now() - live.startTs;
         const realElapsedSecs = Math.floor(realElapsedMs / 1000);
         
-        console.log(`  Task "${t.name}" - Live segment: started at ${new Date(live.startTs).toLocaleTimeString()}, elapsed: ${realElapsedSecs}s, stored: ${live.secs}s`);
-        
+        if (taskState === 'running' && realElapsedSecs >= t.allocSecs) {
+          live.secs = t.allocSecs;
+          live.endTs = live.startTs + t.allocSecs * 1000;
+          setCurrentTaskState(t, 'done');
+          updated = true;
+          return;
+        }
+
         // Set secs to the real elapsed time (not additive, absolute)
-        if (realElapsedSecs > live.secs) {
+        if (realElapsedSecs > (live.secs || 0)) {
           live.secs = realElapsedSecs;
           updated = true;
         }
       }
     }
-
-    // ╔════════════════════════════════════════════════════════════════╗
-    // ║ AUTO-COMPLETE: Check if ANY running task should be done      ║
-    // ║ Calculate based on: TOTAL WORKED TIME vs ALLOCATED TIME       ║
-    // ║ Works even when page was closed (uses real timestamps)        ║
-    // ╚════════════════════════════════════════════════════════════════╝
-    if (taskState === 'running') {
-      // Calculate total actual work time (using real timestamps, not stored secs)
-      const totalWorked = getRealWorkedSecs(t, currentDateStr);
-      
-      console.log(`  🏃 Running task "${t.name}" - Total worked: ${fmtDurF(totalWorked)}, Allocated: ${fmtDurF(t.allocSecs)}, Ready: ${totalWorked >= t.allocSecs}`);
-      
-      // If total worked time reaches or exceeds allocated time, mark as done
-      if (totalWorked >= t.allocSecs) {
-        const live = liveSegment(t, currentDateStr);
-        if (live) {
-          // Update the final secs value to match current elapsed time
-          const realElapsedMs = now - live.startTs;
-          const realElapsedSecs = Math.floor(realElapsedMs / 1000);
-          live.secs = Math.max(live.secs || 0, realElapsedSecs);
-          // Mark the segment as ended
-          live.endTs = now;
-        }
-        
-        // Mark task as completed
-        setCurrentTaskState(t, 'done');
-        autoSyncCompletedTask(t);
-        playDing();
-        showDoneBanner(t.name);
-        updated = true;
-        
-        console.log(`✅ COMPLETED: Task "${t.name}" auto-completed. Total worked: ${fmtDurF(totalWorked)} / Allocated: ${fmtDurF(t.allocSecs)}`);
-      }
-    }
   });
 
-  if (!updated) {
-    console.log(`📊 SYNC END - No updates needed`);
-    return;
-  }
+  if (!updated) return;
 
-  console.log(`📊 SYNC END - Updated and re-rendering...`);
   updateFlowStats();
   updateHoursTracker();
   updateLiveFlow();
-  updateProgressBarsSmooth();
   renderFlowList();
   saveFlowData();
 
@@ -9484,6 +9588,7 @@ async function loadFlowData() {
         }
         if (!t.dateAdded) t.dateAdded = Date.now();
         if (!t.splits) t.splits = []; // Initialize splits array for split timing feature
+        if (!('goal' in t)) t.goal = '';
         if (!t.id) {
           console.warn('Task missing ID during load - generating new ID:', t);
           t.id = 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -9498,30 +9603,10 @@ async function loadFlowData() {
       }
       console.log('Successfully loaded', allTasks.length, 'tasks');
       hasSuccessfullyLoaded = true;
+      await syncElapsedTime();
     }
-
-    if (window.api && window.api.getElapsedTime) {
-      try {
-        const timeResult = await window.api.getElapsedTime();
-        if (timeResult.success && timeResult.elapsedSeconds > 0) {
-          // App was closed; recalculate all segment times based on their saved startTs
-          await syncElapsedTime();
-        }
-      } catch (timeErr) {
-        console.error('Error syncing elapsed time:', timeErr);
-      }
-    }
-    
-    updateFlowLastSaved(data.savedAt);
-    
-    // ===== MARK SUCCESSFUL LOAD - THIS UNLOCKS SAVING =====
-    hasSuccessfullyLoaded = true;
-    console.log('Safe Persistence: Data load complete. Auto-save is now enabled.');
-    
-  } catch(e) {
+  } catch (e) {
     console.error('Critical error loading flow data:', e);
-    console.error('Stack trace:', e.stack);
-    // Mark as loaded anyway to prevent the auto-save timer from wiping data
     hasSuccessfullyLoaded = true;
   }
 }
@@ -10244,23 +10329,6 @@ document.addEventListener('mousemove', () => {
 
 // Detect keyboard activity
 document.addEventListener('keydown', () => {
-  lastActivityTime = Date.now();
-});
-
-// ╔════════════════════════════════════════════════════════════════╗
-// ║ NEW: PAGE VISIBILITY LISTENER FOR AUTO-COMPLETION             ║
-// ║ Ensures tasks complete even when page was hidden              ║
-// ╚════════════════════════════════════════════════════════════════╝
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) {
-    // Page has become visible - immediately sync elapsed time and check for completions
-    console.log('📱 Page became visible. Syncing tasks...');
-    syncElapsedTime();
-    renderFlowList();
-  } else {
-    // Page is now hidden
-    console.log('📴 Page hidden. Tasks will sync on return.');
-  }
   lastActivityTime = Date.now();
 });
 
@@ -11227,6 +11295,7 @@ function saveCalendarTask() {
   const notes = document.getElementById('calTaskNotes').value.trim();
   
   const selectedDates = calTaskSelectedDates.length > 0 ? [...new Set(calTaskSelectedDates)] : (date ? [date] : []);
+  const goal = document.getElementById('calTaskGoal').value.trim();
   if (!name || selectedDates.length === 0) {
     alert('Please enter task name and select at least one date');
     return;
@@ -11237,6 +11306,8 @@ function saveCalendarTask() {
     tasksToAdd.push({
       id: Date.now() + Math.random(),
       name,
+      goal: goal || '',
+      goalStatus: '',
       scheduledDate: d,
       scheduledDates: [d],
       hour,
