@@ -5822,14 +5822,11 @@ function markDone(id) {
     live.secs = getSegmentSecs(live);
     live.endTs = Date.now();
   }
-  if (t.goal && !t.goalStatus) {
-    setCurrentTaskState(t, 'awaitingGoal');
-  } else {
-    setCurrentTaskState(t, 'done');
-    playDing();
-    showDoneBanner(t.name);
-    autoSyncCompletedTask(t);
-  }
+  t.completedAt = Date.now();
+  setCurrentTaskState(t, 'done');
+  playDing();
+  showDoneBanner(t.name);
+  autoSyncCompletedTask(t);
   stopRepeatingAlarm();
   renderFlowList();
   saveFlowData();
@@ -5839,33 +5836,16 @@ function markDone(id) {
 function markUntimeTaskDone(id) {
   const t = flowTasks.find(x => x.id===id);
   if (!t || !t.isUntimed) return;
-  if (t.goal && !t.goalStatus) {
-    setCurrentTaskState(t, 'awaitingGoal');
-  } else {
-    setCurrentTaskState(t, 'done');
-    playDing();
-    showDoneBanner(t.name);
-    autoSyncCompletedTask(t);
-  }
+  t.completedAt = Date.now();
+  setCurrentTaskState(t, 'done');
+  playDing();
+  showDoneBanner(t.name);
+  autoSyncCompletedTask(t);
   renderFlowList();
   saveFlowData();
   closeDropdownAfterAction();
 }
 
-function confirmGoalResult(id, result) {
-  const t = flowTasks.find(x => x.id === id);
-  if (!t) return;
-  const cleaned = result === 'yes' ? 'yes' : 'no';
-  t.goalStatus = cleaned;
-  setCurrentTaskState(t, 'done');
-  if (cleaned === 'yes') {
-    autoSyncCompletedTask(t);
-    playDing();
-    showDoneBanner(t.name);
-  }
-  saveFlowData();
-  renderFlowList();
-}
 
 function deleteFlowTask(id) {
   const t = flowTasks.find(x => x.id === id);
@@ -5945,15 +5925,11 @@ function ensureTick() {
             live.secs = t.allocSecs;
             live.endTs = live.startTs ? (live.startTs + t.allocSecs * 1000) : Date.now();
           }
-          if (t.goal && !t.goalStatus) {
-            setCurrentTaskState(t, 'awaitingGoal');
-            showGoalReviewBanner(t.name);
-          } else {
-            setCurrentTaskState(t, 'done');
-            autoSyncCompletedTask(t);
-            playDing();
-            showDoneBanner(t.name);
-          }
+          t.completedAt = t.completedAt || Date.now();
+          setCurrentTaskState(t, 'done');
+          autoSyncCompletedTask(t);
+          playDing();
+          showDoneBanner(t.name);
           renderFlowList();
           return;
         }
@@ -6143,14 +6119,6 @@ function showDoneBanner(taskName) {
   const banner = document.getElementById('doneBanner');
   const txt    = document.getElementById('doneBannerText');
   txt.textContent = '✓ "' + taskName + '" — completed!';
-  banner.classList.add('visible');
-  setTimeout(() => banner.classList.remove('visible'), 5000);
-}
-
-function showGoalReviewBanner(taskName) {
-  const banner = document.getElementById('doneBanner');
-  const txt    = document.getElementById('doneBannerText');
-  txt.textContent = '⏳ "' + taskName + '" — goal review required.';
   banner.classList.add('visible');
   setTimeout(() => banner.classList.remove('visible'), 5000);
 }
@@ -6372,6 +6340,7 @@ function updateLiveFlow() {
           live.secs = Math.floor((now - (live.startTs || now)) / 1000);
           live.endTs = now;
         }
+        t.completedAt = t.completedAt || Date.now();
         setCurrentTaskState(t, 'done');
         autoSyncCompletedTask(t);
         playDing();
@@ -6395,6 +6364,7 @@ function updateLiveFlow() {
       if (isPastEnd) {
         live.secs = Math.floor((now - (live.startTs || now)) / 1000);
         live.endTs = now;
+        t.completedAt = t.completedAt || Date.now();
         setCurrentTaskState(t, 'done');
         autoSyncCompletedTask(t);
         playDing();
@@ -6516,7 +6486,7 @@ function renderFlowList() {
   
   // Sort tasks: running > paused (break) > idle > done (FULLY AUTOMATIC)
   const sortedTasks = [...filteredTasks].sort((a, b) => {
-    const stateOrder = {running: 0, paused: 1, awaitingGoal: 2, idle: 3, done: 4};
+    const stateOrder = {running: 0, paused: 1, idle: 2, done: 3};
     const orderA = stateOrder[getCurrentTaskState(a)] ?? 5;
     const orderB = stateOrder[getCurrentTaskState(b)] ?? 5;
     if (orderA !== orderB) return orderA - orderB;
@@ -6535,7 +6505,7 @@ function renderFlowList() {
     const brk = totalBreakSecs(t, currentDateStr);
     const live = liveSegment(t, currentDateStr);
     const breakCount = taskSegments.filter(s=>s.type==='break').length;
-    const remaining = Math.max(t.allocSecs-worked, 0);
+    const remaining = taskState === 'done' ? 0 : Math.max(t.allocSecs - worked, 0);
     const isOverrun = taskState==='paused' && live && live.overrun;
 
     let digsText, labelText;
@@ -6563,13 +6533,10 @@ function renderFlowList() {
       digsText = fmtF(remaining); labelText = taskState==='done'?'done':'remaining';
     }
 
-    const displayState = t.state === 'awaitingGoal' ? 'awaitingGoal' : taskState;
-    const pillClass = displayState === 'awaitingGoal' ? 'pill-awaiting'
-      : displayState === 'done' ? (t.goalStatus === 'yes' ? 'pill-done' : t.goalStatus === 'no' ? 'pill-no' : 'pill-done')
-      : {running:'pill-running',paused:'pill-break',idle:'pill-idle'}[displayState] || 'pill-idle';
-    const pillText = displayState === 'awaitingGoal' ? 'Goal review'
-      : displayState === 'done' ? (t.goalStatus === 'yes' ? 'Done' : t.goalStatus === 'no' ? 'Goal missed' : 'Done')
-      : {running:'Running',paused:'Break',idle:'Idle'}[displayState] || 'Idle';
+    const pillClass = taskState === 'done' ? (t.goalStatus === 'yes' ? 'pill-done' : t.goalStatus === 'no' ? 'pill-no' : 'pill-done')
+      : {running:'pill-running',paused:'pill-break',idle:'pill-idle'}[taskState] || 'pill-idle';
+    const pillText = taskState === 'done' ? (t.goalStatus === 'yes' ? 'Done' : t.goalStatus === 'no' ? 'Goal missed' : 'Done')
+      : {running:'Running',paused:'Break',idle:'Idle'}[taskState] || 'Idle';
     const inTray = tray.some(x=>x.id===t.id);
 
     const canDone = (taskState==='running'||taskState==='paused') && worked >= t.allocSecs*0.5;
@@ -6686,18 +6653,7 @@ function renderFlowList() {
     }
 
     let goalPromptHTML = '';
-    if (t.state === 'awaitingGoal' && t.goal) {
-      goalPromptHTML = `
-        <div style="padding: 12px; margin: 12px 0 0 0; border: 1px solid var(--border); border-radius: 10px; background: var(--surface);">
-          <div style="font-size: 12px; color: var(--text); font-weight: 600; margin-bottom: 8px;">Your goal</div>
-          <div style="font-size: 12px; color: var(--muted); margin-bottom: 14px;">${t.goal.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-          <div style="font-size: 12px; color: var(--text); font-weight: 600; margin-bottom: 10px;">Did you hit the goal?</div>
-          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
-            <button class="btn" onclick="confirmGoalResult(${t.id}, 'yes')">Yes</button>
-            <button class="btn danger" onclick="confirmGoalResult(${t.id}, 'no')">No</button>
-          </div>
-        </div>`;
-    } else if (t.goal && t.goalStatus) {
+    if (t.goal && t.goalStatus) {
       const goalStateText = t.goalStatus === 'yes' ? 'Hit' : 'Missed';
       goalPromptHTML = `<div style="font-size: 11px; color: ${t.goalStatus === 'yes' ? 'var(--active)' : '#ff5e6c'}; margin-top: 10px;">🎯 ${t.goal.replace(/</g,'&lt;').replace(/>/g,'&gt;')} — ${goalStateText}</div>`;
     }
@@ -8029,6 +7985,39 @@ async function generateAdviceManually() {
   btn.disabled = false;
 }
 
+function getTaskAccountabilityInfo(task) {
+  if (!task.completedAt || getCurrentTaskState(task) !== 'done') {
+    return { status: 'none', label: '-', canConfirm: false, badgeColor: 'var(--muted)' };
+  }
+
+  if (task.completionAccountable === 'yes') {
+    return { status: 'accountable', label: 'Accountable', canConfirm: false, badgeColor: 'var(--done)' };
+  }
+
+  const elapsedMs = Date.now() - task.completedAt;
+  const windowMs = 30 * 60 * 1000;
+  if (elapsedMs > windowMs) {
+    return { status: 'gave-up', label: 'Task dropped, abandoned', canConfirm: false, badgeColor: 'var(--danger)' };
+  }
+
+  return {
+    status: 'pending',
+    label: 'I did it',
+    canConfirm: true,
+    expiresIn: Math.max(0, windowMs - elapsedMs),
+    badgeColor: 'var(--active)'
+  };
+}
+
+function confirmCompletionAccountability(id) {
+  const t = flowTasks.find(x => x.id === id);
+  if (!t) return;
+  t.completionAccountable = 'yes';
+  t.completedAt = t.completedAt || Date.now();
+  saveFlowData();
+  renderReportsPage();
+}
+
 function renderReportsPage() {
   const page = document.getElementById('page-report');
   if (!page) return;
@@ -8071,7 +8060,6 @@ function renderReportsPage() {
   });
   
   const doneTasks = filteredTasks.filter(t => t.state === 'done');
-  const awaitingGoalTasks = filteredTasks.filter(t => t.state === 'awaitingGoal');
   const runningTasks = filteredTasks.filter(t => t.state === 'running');
   const pausedTasks = filteredTasks.filter(t => t.state === 'paused');
   const idleTasks = filteredTasks.filter(t => t.state === 'idle');
@@ -8163,15 +8151,6 @@ function renderReportsPage() {
               <div style="width: ${(pausedTasks.length / filteredTasks.length) * 100}%; height: 100%; background: var(--break);"></div>
             </div>
           </div>
-          <div style="background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.3); border-radius: 10px; padding: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <div style="font-size: 11px; color: var(--break); text-transform: uppercase; font-weight: 600;">⏳ Goal review</div>
-              <div style="font-size: 18px; color: var(--break); font-weight: 700;">${awaitingGoalTasks.length}</div>
-            </div>
-            <div style="width: 100%; height: 4px; background: rgba(245,166,35,0.2); border-radius: 2px; overflow: hidden;">
-              <div style="width: ${(awaitingGoalTasks.length / filteredTasks.length) * 100}%; height: 100%; background: var(--break);"></div>
-            </div>
-          </div>
           <div style="background: #1e1e24; border: 1px solid var(--border2); border-radius: 10px; padding: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <div style="font-size: 11px; color: var(--muted2); text-transform: uppercase; font-weight: 600;">○ Idle</div>
@@ -8188,7 +8167,7 @@ function renderReportsPage() {
       <div style="margin-bottom: 32px;">
         <div style="font-size: 13px; font-weight: 600; color: var(--active); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px;">📋 Detailed Task Breakdown</div>
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
-          <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr; gap: 12px; padding: 14px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 600; letter-spacing: 0.05em;">
+          <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr 1.1fr; gap: 12px; padding: 14px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 600; letter-spacing: 0.05em;">
             <div>Task</div>
             <div>Status</div>
             <div>Goal</div>
@@ -8196,6 +8175,7 @@ function renderReportsPage() {
             <div>Breaks</div>
             <div>Allocated</div>
             <div>Progress</div>
+            <div>Accountable</div>
           </div>`;
     
     filteredTasks.forEach(t => {
@@ -8203,11 +8183,16 @@ function renderReportsPage() {
       const brk = totalBreakSecs(t);
       const breakCount = t.segments.filter(s => s.type === 'break').length;
       const pct = Math.round((worked / t.allocSecs) * 100);
-      const status = t.state === 'done' ? '✓ Done' : t.state === 'running' ? '▶ Running' : t.state === 'paused' ? '⏸ Paused' : '○ Idle';
-      const statusColor = t.state === 'done' ? 'var(--done)' : t.state === 'running' ? 'var(--active)' : t.state === 'paused' ? 'var(--break)' : 'var(--muted)';
+      const taskState = getCurrentTaskState(t);
+      const status = taskState === 'done' ? '✓ Done' : taskState === 'running' ? '▶ Running' : taskState === 'paused' ? '⏸ Paused' : '○ Idle';
+      const statusColor = taskState === 'done' ? 'var(--done)' : taskState === 'running' ? 'var(--active)' : taskState === 'paused' ? 'var(--break)' : 'var(--muted)';
+      const accountability = getTaskAccountabilityInfo(t);
+      const accountabilityHtml = accountability.canConfirm
+        ? `<div style="display:flex;flex-direction:column;gap:6px;"><button class="btn done-early" style="width:100%;min-width:0;" onclick="confirmCompletionAccountability(${t.id})">${accountability.label}</button><div style="font-size:10px;color:var(--muted);text-align:center;">${fmtDurF(Math.ceil(accountability.expiresIn/1000))} left</div></div>`
+        : `<span style="display:inline-flex;align-items:center;justify-content:center;width:100%;padding:6px 10px;background:${accountability.badgeColor}20;color:${accountability.badgeColor};border-radius:8px;font-size:11px;font-weight:600;">${accountability.label}</span>`;
       
       html += `
-        <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); align-items: center; font-size: 12px;">
+        <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr 1.1fr; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); align-items: center; font-size: 12px;">
           <div>
             <div style="font-weight: 500; color: var(--text);">${t.name}</div>
             <div style="font-size: 10px; color: var(--muted); margin-top: 2px;">${fmtDurF(worked)} / ${fmtDurF(t.allocSecs)}</div>
@@ -8225,6 +8210,7 @@ function renderReportsPage() {
             </div>
             <div style="font-size: 10px; color: var(--muted); text-align: center;">${pct}%</div>
           </div>
+          <div>${accountabilityHtml}</div>
         </div>`;
     });
     
@@ -9275,7 +9261,7 @@ function renderValuesPage() {
               If you hit the goal before the timer ends, keep working until the allocated time is up. If the time ends before the goal is reached, keep going until the goal is complete.
             </p>
             <p style="font-size: 12px; color: var(--muted2); line-height: 1.7; margin: 12px 10px 0 0;">
-              When the task finishes, Tempow will ask: “Did you hit the goal?” You answer only <strong>Yes</strong> or <strong>No</strong> — there is no almost or approximate answer.
+              When the task finishes, confirm completion on the report page by clicking “I did it” within 30 minutes. If you do not confirm, the task becomes recorded as dropped and abandoned.
             </p>
           </div>
         </div>
@@ -9424,26 +9410,36 @@ async function syncElapsedTime(overrideElapsedSeconds) {
   // For each running or paused task, recalculate elapsed based on real-world time
   flowTasks.forEach(t => {
     const taskState = getCurrentTaskState(t);
-    if (taskState === 'running' || taskState === 'paused') {
-      const live = liveSegment(t, currentDateStr);
-      if (live && live.startTs) {
-        // Calculate real elapsed time in seconds from the actual start timestamp
-        const realElapsedMs = Date.now() - live.startTs;
-        const realElapsedSecs = Math.floor(realElapsedMs / 1000);
-        
-        if (taskState === 'running' && realElapsedSecs >= t.allocSecs) {
-          live.secs = t.allocSecs;
-          live.endTs = live.startTs + t.allocSecs * 1000;
-          setCurrentTaskState(t, 'done');
-          updated = true;
-          return;
-        }
+    const live = liveSegment(t, currentDateStr);
+    if (live && live.startTs) {
+      // Calculate real elapsed time in seconds from the actual start timestamp
+      const realElapsedMs = Date.now() - live.startTs;
+      const realElapsedSecs = Math.floor(realElapsedMs / 1000);
 
-        // Set secs to the real elapsed time (not additive, absolute)
-        if (realElapsedSecs > (live.secs || 0)) {
-          live.secs = realElapsedSecs;
+      if (taskState === 'running' && realElapsedSecs >= t.allocSecs) {
+        live.secs = t.allocSecs;
+        live.endTs = live.startTs + t.allocSecs * 1000;
+        t.completedAt = t.completedAt || live.endTs || Date.now();
+        setCurrentTaskState(t, 'done');
+        updated = true;
+        return;
+      }
+
+      if (taskState === 'done' || taskState === 'awaitingGoal') {
+        // Ensure completed tasks do not retain an open live segment after reload.
+        const finalSecs = getSegmentSecs(live);
+        if (finalSecs !== live.secs || !live.endTs) {
+          live.secs = finalSecs;
+          live.endTs = live.startTs + finalSecs * 1000;
+          t.completedAt = t.completedAt || live.endTs || Date.now();
           updated = true;
         }
+      }
+
+      // Set secs to the real elapsed time for active running/paused segments (not additive, absolute)
+      if ((taskState === 'running' || taskState === 'paused') && realElapsedSecs > (live.secs || 0)) {
+        live.secs = realElapsedSecs;
+        updated = true;
       }
     }
   });
@@ -9589,6 +9585,7 @@ async function loadFlowData() {
         if (!t.dateAdded) t.dateAdded = Date.now();
         if (!t.splits) t.splits = []; // Initialize splits array for split timing feature
         if (!('goal' in t)) t.goal = '';
+        if (!('completionAccountable' in t)) t.completionAccountable = '';
         if (!t.id) {
           console.warn('Task missing ID during load - generating new ID:', t);
           t.id = 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -9597,6 +9594,13 @@ async function loadFlowData() {
       });
       flowTasks = allTasks;  // Sync alias
       calendarTasks = allTasks;  // Sync alias
+      // Convert any legacy awaitingGoal state into done so timer page no longer prompts.
+      allTasks.forEach(task => {
+        if (task.state === 'awaitingGoal') {
+          task.state = 'done';
+          task.completedAt = task.completedAt || Date.now();
+        }
+      });
       // Migrate any older multi-date calendar tasks into separate per-date tasks
       if (typeof splitMultiDateCalendarTasks === 'function') {
         splitMultiDateCalendarTasks();
