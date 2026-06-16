@@ -2932,6 +2932,67 @@ body.text-mode .btn .btn-text {
   </div>
 </div>
 
+<!-- ══ WINDOWS SELECTOR MODAL ══ -->
+<div class="modal-bg" id="windowsModal" style="display: none; z-index: 5000;">
+  <div class="modal" style="max-width: 520px; max-height: 85vh; overflow-y: auto;">
+    <h2>My Free Time Windows</h2>
+    <p style="color: var(--muted2); font-size: 12px; margin-bottom: 16px; line-height: 1.6;">Click on the 24-hour clock to select your free time slots. You can add multiple windows throughout the day.</p>
+    
+    <div style="display: flex; justify-content: center; margin: 20px 0;">
+      <svg id="windowsClock" viewBox="0 0 280 280" style="width: 280px; height: 280px; cursor: pointer;">
+        <circle cx="140" cy="140" r="135" fill="none" stroke="var(--border)" stroke-width="1"/>
+        <g id="hourMarkers"></g>
+        <line x1="140" y1="140" x2="140" y2="50" stroke="var(--muted)" stroke-width="2"/>
+        <circle cx="140" cy="140" r="6" fill="var(--active)"/>
+      </svg>
+    </div>
+    
+    <div style="margin: 16px 0; padding: 12px; background: var(--surface); border-radius: 8px; border: 1px solid var(--border);">
+      <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-weight: 600;">Quick Presets</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+        <button onclick="setWindowPreset('9-17')" style="padding: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 11px; cursor: pointer;">9 AM - 5 PM</button>
+        <button onclick="setWindowPreset('8-18')" style="padding: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 11px; cursor: pointer;">8 AM - 6 PM</button>
+        <button onclick="setWindowPreset('morning')" style="padding: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 11px; cursor: pointer;">Morning (6-12)</button>
+        <button onclick="setWindowPreset('afternoon')" style="padding: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 11px; cursor: pointer;">Afternoon (12-18)</button>
+      </div>
+    </div>
+    
+    <div style="margin: 16px 0;">
+      <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-weight: 600;">Selected Windows</div>
+      <div id="selectedWindowsList" style="display: grid; gap: 8px; max-height: 150px; overflow-y: auto;">
+        <p style="color: var(--muted2); font-size: 11px; text-align: center; padding: 16px 0;">No windows selected yet</p>
+      </div>
+    </div>
+    
+    <div style="margin: 16px 0; padding: 12px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border);">
+      <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-weight: 600;">Tasks by Window</div>
+      <div id="tasksByWindowList" style="display: grid; gap: 10px; max-height: 200px; overflow-y: auto;">
+        <p style="color: var(--muted2); font-size: 10px; text-align: center; padding: 12px 0;">No tasks assigned yet</p>
+      </div>
+    </div>
+    
+    <div style="margin: 16px 0;">
+      <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-weight: 600;">Add Custom Window</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; align-items: end;">
+        <div>
+          <label style="font-size: 10px; color: var(--muted2); display: block; margin-bottom: 4px;">From</label>
+          <input type="number" id="windowStartHour" min="0" max="23" value="9" style="width: 100%; padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px;" placeholder="Hour"/>
+        </div>
+        <div>
+          <label style="font-size: 10px; color: var(--muted2); display: block; margin-bottom: 4px;">To</label>
+          <input type="number" id="windowEndHour" min="0" max="23" value="17" style="width: 100%; padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px;" placeholder="Hour"/>
+        </div>
+        <button onclick="addCustomWindow()" style="padding: 6px 12px; background: var(--active); color: #0a1f16; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">Add</button>
+      </div>
+    </div>
+    
+    <div class="modal-actions" style="margin-top: 20px;">
+      <button class="btn-cancel" onclick="closeWindowsModal()" style="flex: 1;">Cancel</button>
+      <button class="btn-confirm" onclick="saveWindows()" style="flex: 1;">Save Windows</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════════
      PAGE 1 — TEMPOW TIMER
 ══════════════════════════════════════════ -->
@@ -2974,6 +3035,14 @@ body.text-mode .btn .btn-text {
       <div class="hours-tracker-label">⚠ Status</div>
       <div class="hours-tracker-value" id="timeStatus" style="font-size: 14px;">—</div>
       <div class="hours-tracker-sub" id="timeStatusDetail"></div>
+    </div>
+    <div class="hours-tracker-item">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="hours-tracker-label">🪟 My Windows</div>
+        <button class="section-toggle" onclick="toggleWindowsDisplay()" title="Toggle windows display" style="background: none; border: none; color: var(--muted2); cursor: pointer; padding: 0; font-size: 16px;">▶</button>
+      </div>
+      <button onclick="openWindowsModal()" style="padding: 6px 12px; background: var(--active); color: #0a1f16; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; margin-top: 4px;">Select Free Time Slots</button>
+      <div id="windowsDisplay" style="display: none; margin-top: 8px; font-size: 11px;"></div>
     </div>
   </div>
 
@@ -5255,6 +5324,334 @@ function handleDataAction(action) {
     clearAllFlowTasks();
   }
 }
+
+function getOfflineHtmlSource() {
+  const rawHtml = document.documentElement.outerHTML;
+  const parser = new DOMParser();
+  const offlineDoc = parser.parseFromString(rawHtml, 'text/html');
+
+  offlineDoc.querySelectorAll('link[rel="manifest"], link[href^="https://fonts.googleapis.com"], script[src*="html2pdf.bundle.min.js"]').forEach(el => el.remove());
+
+  return '<!DOCTYPE html>\n' + offlineDoc.documentElement.outerHTML;
+}
+
+function downloadHtmlCopy() {
+  const htmlContent = getOfflineHtmlSource();
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+
+  anchor.href = url;
+  anchor.download = 'tempow-offline.html';
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+
+  const notice = document.getElementById('downloadNotice');
+  if (notice) {
+    notice.textContent = 'Downloaded local HTML copy. Open the saved file in your browser for offline use.';
+  }
+}
+
+let selectedWindows = [];
+let currentWindowDrag = { start: null, end: null, isDrawing: false };
+
+function initializeWindowsClock() {
+  const svg = document.getElementById('windowsClock');
+  if (!svg) return;
+  const hourMarkersGroup = document.getElementById('hourMarkers');
+  const centerX = 140;
+  const centerY = 140;
+  const radius = 100;
+
+  hourMarkersGroup.innerHTML = '';
+
+  for (let i = 0; i < 24; i++) {
+    const angle = (i * 360 / 24) - 90;
+    const radian = (angle * Math.PI) / 180;
+
+    const x1 = centerX + Math.cos(radian) * 90;
+    const y1 = centerY + Math.sin(radian) * 90;
+    const x2 = centerX + Math.cos(radian) * 100;
+    const y2 = centerY + Math.sin(radian) * 100;
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
+    line.setAttribute('stroke', 'var(--border2)');
+    line.setAttribute('stroke-width', '1');
+    hourMarkersGroup.appendChild(line);
+
+    const labelX = centerX + Math.cos(radian) * 70;
+    const labelY = centerY + Math.sin(radian) * 70;
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', labelX);
+    text.setAttribute('y', labelY);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dy', '.3em');
+    text.setAttribute('fill', 'var(--muted2)');
+    text.setAttribute('font-size', '11');
+    text.setAttribute('font-weight', '500');
+    text.textContent = i === 0 ? '0' : i;
+    hourMarkersGroup.appendChild(text);
+  }
+
+  renderWindowSegments();
+  svg.addEventListener('click', (e) => handleClockClick(e, svg));
+}
+
+function handleClockClick(e, svg) {
+  const rect = svg.getBoundingClientRect();
+  const x = e.clientX - rect.left - 140;
+  const y = e.clientY - rect.top - 140;
+  const angle = Math.atan2(y, x) * 180 / Math.PI + 90;
+  const normalizedAngle = (angle + 360) % 360;
+  const hour = Math.round((normalizedAngle / 360) * 24) % 24;
+
+  if (currentWindowDrag.start === null) {
+    currentWindowDrag.start = hour;
+    renderWindowSegments();
+  } else if (currentWindowDrag.end === null) {
+    currentWindowDrag.end = hour;
+    if (currentWindowDrag.end > currentWindowDrag.start) {
+      selectedWindows.push({ start: currentWindowDrag.start, end: currentWindowDrag.end });
+    } else {
+      selectedWindows.push({ start: currentWindowDrag.end, end: currentWindowDrag.start });
+    }
+    currentWindowDrag = { start: null, end: null };
+    renderWindowSegments();
+    updateSelectedWindowsList();
+    updateTasksByWindow();
+  }
+}
+
+function renderWindowSegments() {
+  const svg = document.getElementById('windowsClock');
+  if (!svg) return;
+
+  const existingSegments = svg.querySelectorAll('.window-segment, .hour-highlight');
+  existingSegments.forEach(seg => seg.remove());
+
+  const centerX = 140;
+  const centerY = 140;
+  const colors = ['#5de0a8', '#4a8cff', '#f5a623', '#ff5e6c', '#7b9fff', '#a78bfa'];
+
+  selectedWindows.forEach((window, idx) => {
+    const color = colors[idx % colors.length];
+    const startAngle = (window.start * 360 / 24) - 90;
+    const endAngle = (window.end * 360 / 24) - 90;
+    const startRadian = (startAngle * Math.PI) / 180;
+    const endRadian = (endAngle * Math.PI) / 180;
+
+    const x1 = centerX + Math.cos(startRadian) * 85;
+    const y1 = centerY + Math.sin(startRadian) * 85;
+    const x2 = centerX + Math.cos(endRadian) * 85;
+    const y2 = centerY + Math.sin(endRadian) * 85;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const largeArc = (window.end - window.start) > 12 ? 1 : 0;
+    const d = `M ${centerX} ${centerY} L ${x1} ${y1} A 85 85 0 ${largeArc} 1 ${x2} ${y2} Z`;
+    path.setAttribute('d', d);
+    path.setAttribute('fill', color);
+    path.setAttribute('opacity', '0.3');
+    path.setAttribute('class', 'window-segment');
+    svg.appendChild(path);
+  });
+
+  if (currentWindowDrag.start !== null) {
+    const startAngle = (currentWindowDrag.start * 360 / 24) - 90;
+    const startRadian = (startAngle * Math.PI) / 180;
+    const x = centerX + Math.cos(startRadian) * 85;
+    const y = centerY + Math.sin(startRadian) * 85;
+
+    const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    highlight.setAttribute('cx', x);
+    highlight.setAttribute('cy', y);
+    highlight.setAttribute('r', '8');
+    highlight.setAttribute('fill', '#f5a623');
+    highlight.setAttribute('class', 'hour-highlight');
+    svg.appendChild(highlight);
+
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', centerX);
+    label.setAttribute('y', centerY - 110);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('fill', '#f5a623');
+    label.setAttribute('font-size', '12');
+    label.setAttribute('font-weight', '600');
+    label.setAttribute('class', 'hour-highlight');
+    label.textContent = `Start: ${String(currentWindowDrag.start).padStart(2, '0')}:00 - Click end hour`;
+    svg.appendChild(label);
+  }
+}
+
+function updateSelectedWindowsList() {
+  const list = document.getElementById('selectedWindowsList');
+  if (!list) return;
+
+  if (selectedWindows.length === 0) {
+    list.innerHTML = '<p style="color: var(--muted2); font-size: 11px; text-align: center; padding: 16px 0;">No windows selected yet</p>';
+    return;
+  }
+
+  list.innerHTML = selectedWindows.map((window, idx) => {
+    return `<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: var(--surface2); border-radius: 6px; border: 1px solid var(--border);"><span style="font-size: 12px; color: var(--text);"><strong>${String(window.start).padStart(2, '0')}:00</strong> - <strong>${String(window.end).padStart(2, '0')}:00</strong></span><button onclick="removeWindow(${idx})" style="padding: 2px 6px; background: var(--danger); color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 10px;">✕</button></div>`;
+  }).join('');
+}
+
+function removeWindow(idx) {
+  selectedWindows.splice(idx, 1);
+  renderWindowSegments();
+  updateSelectedWindowsList();
+}
+
+function setWindowPreset(preset) {
+  selectedWindows = [];
+  if (preset === '9-17') {
+    selectedWindows.push({ start: 9, end: 17 });
+  } else if (preset === '8-18') {
+    selectedWindows.push({ start: 8, end: 18 });
+  } else if (preset === 'morning') {
+    selectedWindows.push({ start: 6, end: 12 });
+  } else if (preset === 'afternoon') {
+    selectedWindows.push({ start: 12, end: 18 });
+  }
+  renderWindowSegments();
+  updateSelectedWindowsList();
+}
+
+function addCustomWindow() {
+  const startInput = document.getElementById('windowStartHour');
+  const endInput = document.getElementById('windowEndHour');
+  const start = parseInt(startInput.value);
+  const end = parseInt(endInput.value);
+
+  if (isNaN(start) || isNaN(end) || start < 0 || start > 23 || end < 0 || end > 23) {
+    alert('Please enter valid hours (0-23)');
+    return;
+  }
+
+  if (start === end) {
+    alert('Start and end times must be different');
+    return;
+  }
+
+  if (start > end) {
+    selectedWindows.push({ start: end, end: start });
+  } else {
+    selectedWindows.push({ start, end });
+  }
+
+  startInput.value = 9;
+  endInput.value = 17;
+  renderWindowSegments();
+  updateSelectedWindowsList();
+}
+
+function openWindowsModal() {
+  const modal = document.getElementById('windowsModal');
+  modal.style.display = 'flex';
+  selectedWindows = JSON.parse(localStorage.getItem('tempow_time_windows') || '[]');
+  setTimeout(() => {
+    initializeWindowsClock();
+    updateTasksByWindow();
+  }, 100);
+}
+
+function closeWindowsModal() {
+  const modal = document.getElementById('windowsModal');
+  modal.style.display = 'none';
+}
+
+function saveWindows() {
+  localStorage.setItem('tempow_time_windows', JSON.stringify(selectedWindows));
+  updateWindowsDisplay();
+  closeWindowsModal();
+}
+
+function updateWindowsDisplay() {
+  const display = document.getElementById('windowsDisplay');
+  const windows = JSON.parse(localStorage.getItem('tempow_time_windows') || '[]');
+
+  if (windows.length === 0) {
+    display.innerHTML = '<p style="color: var(--muted2);">No time windows set</p>';
+    return;
+  }
+
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  let html = '<div style="display: grid; gap: 6px;">';
+  let totalFreeHours = 0;
+
+  windows.forEach(window => {
+    const hours = window.end - window.start;
+    totalFreeHours += hours;
+    const isCurrentWindow = currentHour >= window.start && currentHour < window.end;
+    const currentStyle = isCurrentWindow ? 'color: var(--active); font-weight: 600;' : '';
+    html += `<div style="${currentStyle}font-size: 11px; padding: 4px 8px; background: rgba(93,224,168,0.1); border-radius: 4px; border-left: 3px solid var(--active);">${String(window.start).padStart(2, '0')}:00 - ${String(window.end).padStart(2, '0')}:00 (${hours}h)</div>`;
+  });
+
+  html += `<div style="font-size: 11px; margin-top: 8px; padding: 8px; background: var(--surface2); border-radius: 4px; border: 1px solid var(--border);"><strong>Total Free Time:</strong> ${totalFreeHours}h per day</div>`;
+  html += '</div>';
+  display.innerHTML = html;
+}
+
+function toggleWindowsDisplay() {
+  const display = document.getElementById('windowsDisplay');
+  const toggleBtn = document.querySelector('[onclick="toggleWindowsDisplay()"]');
+  
+  if (!display) return;
+  
+  if (display.style.display === 'none' || !display.style.display) {
+    display.style.display = 'block';
+    if (toggleBtn) toggleBtn.style.transform = 'rotate(90deg)';
+  } else {
+    display.style.display = 'none';
+    if (toggleBtn) toggleBtn.style.transform = 'rotate(0deg)';
+  }
+}
+
+function updateTasksByWindow() {
+  const list = document.getElementById('tasksByWindowList');
+  if (!list) return;
+  const windows = selectedWindows;
+  if (windows.length === 0) {
+    list.innerHTML = '<p style="color: var(--muted2); font-size: 10px; text-align: center; padding: 12px 0;">No windows defined yet</p>';
+    return;
+  }
+  let html = '';
+  windows.forEach((window, idx) => {
+    const windowTasksKey = `tempow_window_${idx}_tasks`;
+    const windowTasks = JSON.parse(localStorage.getItem(windowTasksKey) || '[]');
+    html += `<div style="padding: 10px; background: rgba(93,224,168,0.08); border-radius: 6px; border-left: 3px solid var(--active);">`;
+    html += `<div style="font-size: 11px; font-weight: 600; color: var(--active); margin-bottom: 6px;">${String(window.start).padStart(2, '0')}:00 - ${String(window.end).padStart(2, '0')}:00 (${window.end - window.start}h)</div>`;
+    if (windowTasks.length === 0) {
+      html += `<p style="font-size: 10px; color: var(--muted2);">No tasks assigned</p>`;
+    } else {
+      windowTasks.forEach(task => {
+        html += `<div style="font-size: 10px; color: var(--text); padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">\u2022 ${task}</div>`;
+      });
+    }
+    html += '</div>';
+  });
+  list.innerHTML = html;
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(updateWindowsDisplay, 500);
+});
+
+window.addEventListener('click', (e) => {
+  const windowsModal = document.getElementById('windowsModal');
+  if (e.target === windowsModal) {
+    closeWindowsModal();
+  }
+});
 
 function toggleDatePicker() {
   const dateInput = document.getElementById('timerDateFilter');
@@ -8458,6 +8855,7 @@ function renderReportsPage() {
         <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; font-weight: 600;">📥 Download Report</div>
         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
           <button class="data-btn" onclick="printReportToPDF()" style="padding: 9px 16px;">🖨️ Print Full Report (PDF)</button>
+          <button class="data-btn" onclick="downloadHtmlCopy()" style="padding: 9px 16px;">⬇ Save Offline HTML</button>
         </div>
       </div>`;
   }
