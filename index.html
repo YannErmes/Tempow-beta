@@ -586,6 +586,151 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 
 .flow-main { padding: 28px 40px 120px; max-width: 900px; margin: 0 auto; transition: padding-bottom 0.3s ease; }
 
+.quick-notes-widget {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 260;
+  width: min(360px, calc(100vw - 24px));
+}
+
+.quick-notes-fab {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--active), #8af3c8);
+  color: #07150f;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  padding: 12px 16px;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+  z-index: 2;
+}
+
+.quick-notes-panel {
+  position: absolute;
+  right: 0;
+  bottom: 58px;
+  width: min(360px, calc(100vw - 24px));
+  background: rgba(15, 15, 20, 0.94);
+  border: 1px solid rgba(93,224,168,0.45);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.4);
+  backdrop-filter: blur(10px);
+  transform: translateY(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.quick-notes-widget.open .quick-notes-panel {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.quick-notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.quick-notes-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--active);
+}
+
+.quick-notes-subtitle {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.quick-notes-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.quick-notes-tools-btn,
+.quick-notes-color,
+.quick-notes-size {
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.quick-notes-tools-btn {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quick-notes-tools-btn:hover {
+  border-color: var(--active);
+  color: var(--active);
+}
+
+.quick-notes-color {
+  width: 42px;
+  padding: 4px;
+  height: 34px;
+}
+
+.quick-notes-size {
+  min-width: 74px;
+}
+
+.quick-notes-editor {
+  min-height: 140px;
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  background: rgba(14,14,17,0.74);
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+}
+
+.quick-notes-editor:focus {
+  border-color: var(--active);
+  box-shadow: 0 0 0 3px rgba(93,224,168,0.12);
+}
+
+.quick-notes-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+}
+
+.quick-notes-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.quick-notes-save {
+  font-size: 10px;
+  color: var(--muted);
+}
+
 /* Task cards */
 .task-card {
   background: var(--surface); border: 1px solid var(--border);
@@ -614,18 +759,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-mono);
 
 .bar-outer { position: relative; height: 10px; margin: 0 20px; }
 .bar-track { position: absolute; inset: 0; background: var(--track); border-radius: 2px; overflow: hidden; }
-/* Smooth width transitions for bar segments to avoid jitter */
-.bar-track > div { transition: width 0.32s linear; will-change: width; }
 .bar-active { position: absolute; left: 0; top: 0; height: 100%; background: var(--active); transition: width 2s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
 .task-card.done .bar-active { background: var(--done); }
 .brk-seg { position: absolute; top: 0; height: 10px; background: var(--break); cursor: pointer; z-index: 10; transition: filter 0.15s; }
 .brk-seg:hover { filter: brightness(1.3); }
 .brk-seg.live { animation: pulse 1.4s ease-in-out infinite; }
-
-/* Break marker: show a thin dot/line where break started (duration not shown) */
-.brk-marker { position: absolute; top: 0; height: 100%; width: 6px; background: var(--break); transform: translateX(-50%); border-radius: 3px; cursor: pointer; z-index: 12; transition: opacity 0.18s, transform 0.18s; }
-.brk-marker.live { animation: pulse 1.4s ease-in-out infinite; }
-.brk-marker.overrun { background: var(--danger); }
 @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.6} }
 
 /* Workspace page styles */
@@ -1828,8 +1966,6 @@ body.text-mode .btn .btn-text {
 .pill-running { background:var(--active-dim); color:var(--active); }
 .pill-break   { background:var(--break-dim); color:var(--break); }
 .pill-done    { background:var(--done-dim); color:var(--done); }
-.pill-awaiting { background: rgba(245,166,35,0.12); color: var(--break); }
-.pill-no { background: rgba(255,94,108,0.12); color: #ff5e6c; }
 .pill-idle    { background:var(--surface2); color:var(--muted); }
 
 /* Tempow modal */
@@ -2280,7 +2416,8 @@ body.text-mode .btn .btn-text {
 .floating-action-btn {
   position: fixed;
   bottom: 24px;
-  right: 24px;
+  left: 24px;
+  right: auto;
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -2932,63 +3069,89 @@ body.text-mode .btn .btn-text {
   </div>
 </div>
 
-<!-- ══ WINDOWS SELECTOR MODAL ══ -->
-<div class="modal-bg" id="windowsModal" style="display: none; z-index: 5000;">
-  <div class="modal" style="max-width: 520px; max-height: 85vh; overflow-y: auto;">
-    <h2>My Free Time Windows</h2>
-    <p style="color: var(--muted2); font-size: 12px; margin-bottom: 16px; line-height: 1.6;">Click on the 24-hour clock to select your free time slots. You can add multiple windows throughout the day.</p>
-    
-    <div style="display: flex; justify-content: center; margin: 20px 0;">
-      <svg id="windowsClock" viewBox="0 0 280 280" style="width: 280px; height: 280px; cursor: pointer;">
-        <circle cx="140" cy="140" r="135" fill="none" stroke="var(--border)" stroke-width="1"/>
-        <g id="hourMarkers"></g>
-        <line x1="140" y1="140" x2="140" y2="50" stroke="var(--muted)" stroke-width="2"/>
-        <circle cx="140" cy="140" r="6" fill="var(--active)"/>
-      </svg>
+<datalist id="taskNameSuggestions"></datalist>
+
+<div class="quick-notes-widget" id="quickNotesWidget">
+  <div class="quick-notes-panel">
+    <div class="quick-notes-header">
+      <div class="quick-notes-title">Quick Notes Block</div>
+      <div class="quick-notes-subtitle">Fast ideas only</div>
     </div>
-    
-    <div style="margin: 16px 0; padding: 12px; background: var(--surface); border-radius: 8px; border: 1px solid var(--border);">
-      <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-weight: 600;">Quick Presets</div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-        <button onclick="setWindowPreset('9-17')" style="padding: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 11px; cursor: pointer;">9 AM - 5 PM</button>
-        <button onclick="setWindowPreset('8-18')" style="padding: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 11px; cursor: pointer;">8 AM - 6 PM</button>
-        <button onclick="setWindowPreset('morning')" style="padding: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 11px; cursor: pointer;">Morning (6-12)</button>
-        <button onclick="setWindowPreset('afternoon')" style="padding: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 11px; cursor: pointer;">Afternoon (12-18)</button>
+
+    <div class="quick-notes-toolbar">
+      <button type="button" class="quick-notes-tools-btn" onclick="applyQuickNoteCommand('bold')">Bold</button>
+      <button type="button" class="quick-notes-tools-btn" onclick="applyQuickNoteCommand('italic')">Italic</button>
+      <button type="button" class="quick-notes-tools-btn" onclick="applyQuickNoteCommand('underline')">Underline</button>
+      <input type="color" id="quickNoteColor" class="quick-notes-color" value="#5de0a8" onchange="applyQuickNoteCommand('foreColor', this.value)" title="Pick text color" />
+      <select id="quickNoteSize" class="quick-notes-size" onchange="applyQuickNoteCommand('fontSize', this.value)" title="Text size">
+        <option value="">Size</option>
+        <option value="1">Small</option>
+        <option value="3">Normal</option>
+        <option value="5">Large</option>
+      </select>
+      <button type="button" class="quick-notes-tools-btn" onclick="applyQuickNoteCommand('insertUnorderedList')">Bullets</button>
+      <button type="button" class="quick-notes-tools-btn" onclick="clearQuickNotes()">Clear</button>
+    </div>
+
+    <div id="quickNotesEditor" class="quick-notes-editor" contenteditable="true" data-placeholder="Write your quick ideas here..."></div>
+
+    <div class="quick-notes-actions">
+      <div class="quick-notes-save" id="quickNotesStatus">Saved locally</div>
+    </div>
+  </div>
+
+  <button type="button" class="quick-notes-fab" id="quickNotesToggle" onclick="toggleQuickNotesWidget()" title="Toggle quick notes">✎ Notes</button>
+</div>
+
+<!-- Edit Calendar Task Modal -->
+<div class="modal-bg" id="editCalendarTaskModal">
+  <div class="modal" style="width: 460px;">
+    <h2>Edit Task</h2>
+    <div class="field">
+      <label>Task Name</label>
+      <input id="editCalTaskName" type="text" list="taskNameSuggestions" placeholder="Enter task name" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+    </div>
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="editCalTaskDate" onfocus="this.showPicker?.()" onkeydown="event.preventDefault()" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text);" />
+    </div>
+    <div class="field">
+      <label>Start Time</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="time" id="editCalTaskTime" value="09:00" style="padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text);" />
+        <span id="editCalTaskTimeLabel" style="color:var(--muted); font-size:13px; min-width:72px; text-align:left;"></span>
       </div>
     </div>
-    
-    <div style="margin: 16px 0;">
-      <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-weight: 600;">Selected Windows</div>
-      <div id="selectedWindowsList" style="display: grid; gap: 8px; max-height: 150px; overflow-y: auto;">
-        <p style="color: var(--muted2); font-size: 11px; text-align: center; padding: 16px 0;">No windows selected yet</p>
-      </div>
+    <div class="field">
+      <label>Task Type</label>
+      <label style="display:flex; gap:8px; align-items:center; font-size:12px; color:var(--text);">
+        <input type="checkbox" id="editCalTaskUntimed" style="accent-color: var(--active);" />
+        Untimed task (no clock duration)
+      </label>
     </div>
-    
-    <div style="margin: 16px 0; padding: 12px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border);">
-      <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-weight: 600;">Tasks by Window</div>
-      <div id="tasksByWindowList" style="display: grid; gap: 10px; max-height: 200px; overflow-y: auto;">
-        <p style="color: var(--muted2); font-size: 10px; text-align: center; padding: 12px 0;">No tasks assigned yet</p>
-      </div>
-    </div>
-    
-    <div style="margin: 16px 0;">
-      <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-weight: 600;">Add Custom Window</div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; align-items: end;">
+    <div class="field" id="editCalTaskDurationField">
+      <label>Duration</label>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center;">
         <div>
-          <label style="font-size: 10px; color: var(--muted2); display: block; margin-bottom: 4px;">From</label>
-          <input type="number" id="windowStartHour" min="0" max="23" value="9" style="width: 100%; padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px;" placeholder="Hour"/>
+          <div style="font-size: 10px; color: var(--muted); margin-bottom: 4px;">Hours</div>
+          <input id="editCalTaskDurationHours" type="number" min="0" max="4" value="0" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px;" />
         </div>
         <div>
-          <label style="font-size: 10px; color: var(--muted2); display: block; margin-bottom: 4px;">To</label>
-          <input type="number" id="windowEndHour" min="0" max="23" value="17" style="width: 100%; padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px;" placeholder="Hour"/>
+          <div style="font-size: 10px; color: var(--muted); margin-bottom: 4px;">Minutes</div>
+          <input id="editCalTaskDurationMinutes" type="number" min="0" max="59" value="60" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px;" />
         </div>
-        <button onclick="addCustomWindow()" style="padding: 6px 12px; background: var(--active); color: #0a1f16; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">Add</button>
+      </div>
+      <div style="margin-top: 8px; padding: 8px; background: var(--active-dim); border-radius: 4px; border: 1px solid var(--active); font-size: 12px; color: var(--active); text-align: center;">
+        <strong id="editCalTaskDurationDisplay">60 minutes</strong>
       </div>
     </div>
-    
-    <div class="modal-actions" style="margin-top: 20px;">
-      <button class="btn-cancel" onclick="closeWindowsModal()" style="flex: 1;">Cancel</button>
-      <button class="btn-confirm" onclick="saveWindows()" style="flex: 1;">Save Windows</button>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="editCalTaskNotes" rows="3" placeholder="Optional notes..." style="width:100%; padding:8px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:var(--text); resize:vertical;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditCalendarTaskModal()">Cancel</button>
+      <button class="btn-confirm" onclick="saveEditedCalendarTask()">Save</button>
     </div>
   </div>
 </div>
@@ -3035,14 +3198,6 @@ body.text-mode .btn .btn-text {
       <div class="hours-tracker-label">⚠ Status</div>
       <div class="hours-tracker-value" id="timeStatus" style="font-size: 14px;">—</div>
       <div class="hours-tracker-sub" id="timeStatusDetail"></div>
-    </div>
-    <div class="hours-tracker-item">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div class="hours-tracker-label">🪟 My Windows</div>
-        <button class="section-toggle" onclick="toggleWindowsDisplay()" title="Toggle windows display" style="background: none; border: none; color: var(--muted2); cursor: pointer; padding: 0; font-size: 16px;">▶</button>
-      </div>
-      <button onclick="openWindowsModal()" style="padding: 6px 12px; background: var(--active); color: #0a1f16; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; margin-top: 4px;">Select Free Time Slots</button>
-      <div id="windowsDisplay" style="display: none; margin-top: 8px; font-size: 11px;"></div>
     </div>
   </div>
 
@@ -3215,10 +3370,6 @@ body.text-mode .btn .btn-text {
         <div class="clock-form-row">
           <label>Task name</label>
           <input id="taskName" type="text" placeholder="e.g. Meeting" style="flex: 1; padding: 8px; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-size: 12px;" />
-        </div>
-        <div class="clock-form-row">
-          <label>Goal</label>
-          <input id="taskGoal" type="text" placeholder="See Our Values page to learn how goals work" style="flex: 1; padding: 8px; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-size: 12px;" />
         </div>
         <div class="clock-form-row">
           <label>Duration</label>
@@ -3408,27 +3559,6 @@ body.text-mode .btn .btn-text {
     </div>
   </div>
 
-  <!-- Edit Calendar Task Modal -->
-  <div class="modal-bg" id="editCalendarTaskModal">
-    <div class="modal" style="width: 420px;">
-      <h2>Edit Task</h2>
-      <div class="field">
-        <label>Task Name</label>
-        <input id="editCalTaskName" type="text" placeholder="Enter task name" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
-      </div>
-      <div class="field">
-        <label>Start Time</label>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <input type="time" id="editCalTaskTime" value="09:00" style="padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text);" />
-          <span id="editCalTaskTimeLabel" style="color:var(--muted); font-size:13px; min-width:72px; text-align:left;"></span>
-        </div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick="closeEditCalendarTaskModal()">Cancel</button>
-        <button class="btn-confirm" onclick="saveEditedCalendarTask()">Save</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Send Task to Date Modal -->
   <div class="modal-bg" id="sendTaskToDateModal">
@@ -3455,7 +3585,7 @@ body.text-mode .btn .btn-text {
       <h2>Add Task to Calendar</h2>
       <div class="field">
         <label>Task Name</label>
-        <input type="text" id="calTaskName" placeholder="Enter task name">
+        <input type="text" id="calTaskName" list="taskNameSuggestions" placeholder="Enter task name">
       </div>
       <div class="field">
         <label>Select one or more dates</label>
@@ -3487,11 +3617,6 @@ body.text-mode .btn .btn-text {
         <div style="margin-top: 8px; padding: 8px; background: var(--active-dim); border-radius: 4px; border: 1px solid var(--active); font-size: 12px; color: var(--active); text-align: center;">
           <strong id="calDurationDisplay">60 minutes</strong>
         </div>
-      </div>
-      <div class="field">
-        <label>Goal</label>
-        <input type="text" id="calTaskGoal" placeholder="See Our Values page to learn how goals work" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px;" />
-        <div style="font-size: 10px; color: var(--muted); margin-top: 6px;">Use this field to describe the result you want by the end of the allocated time.</div>
       </div>
       <div class="field">
         <label>Notes</label>
@@ -3564,8 +3689,7 @@ body.text-mode .btn .btn-text {
 <div class="modal-bg" id="addTaskModal">
   <div class="modal">
     <h2>New task</h2>
-    <div class="field"><label>Task name</label><input type="text" id="inp-name" placeholder="e.g. Write project brief" /></div>
-    <div class="field"><label>Goal</label><input type="text" id="inp-goal" placeholder="e.g. Record the full video" /></div>
+    <div class="field"><label>Task name</label><input type="text" id="inp-name" list="taskNameSuggestions" placeholder="e.g. Write project brief" /></div>
     <div class="field">
       <label>Task type</label>
       <div class="task-type-toggle">
@@ -4218,7 +4342,9 @@ function renderTray() {
 }
 
 function updateBadges() {
-  const cb = document.getElementById('clock-badge');
+  const cb = document.getElementById('calendar-badge') || document.getElementById('calendar-badge-mobile');
+  if (!cb) return;
+
   if (pendingToClock.length > 0) {
     cb.textContent = pendingToClock.length;
     cb.classList.add('visible');
@@ -4288,15 +4414,11 @@ function fmtDurF(s) {
 // Segment helpers
 function totalWorkedSecs(t, dateStr = null) {
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
-  return segments
-    .filter(s => s.type === 'work')
-    .reduce((a, s) => a + getSegmentSecs(s), 0);
+  return segments.filter(s=>s.type==='work').reduce((a,s)=>a+s.secs,0);
 }
 function totalBreakSecs(t, dateStr = null)  {
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
-  return segments
-    .filter(s => s.type === 'break')
-    .reduce((a, s) => a + getSegmentSecs(s), 0);
+  return segments.filter(s=>s.type==='break').reduce((a,s)=>a+s.secs,0);
 }
 function liveSegment(t, dateStr = null) {
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
@@ -4795,21 +4917,13 @@ function loadMinimizedPanelState() {
 // ║ NEW FEATURE: ESTIMATED COMPLETION TIME                        ║
 // ║ This function calculates when your task will be done          ║
 // ╚════════════════════════════════════════════════════════════════╝
-function getEstimatedEndMs(t, dateStr = null) {
-  const taskState = dateStr ? getTaskStateForDate(t, dateStr) : (t.state || 'idle');
-  if (taskState === 'idle' || taskState === 'done') return null;
-  const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
-  const firstWorkStartTs = segments.reduce((min, seg) => {
-    if (seg.type !== 'work' || !seg.startTs) return min;
-    return min === null || seg.startTs < min ? seg.startTs : min;
-  }, null);
-  const startMs = firstWorkStartTs || Date.now();
-  return startMs + (t.allocSecs * 1000);
-}
-
 function getEstimatedEndTime(t, dateStr = null) {
-  const endMs = getEstimatedEndMs(t, dateStr);
-  if (!endMs) return null;
+  const taskState = dateStr ? getTaskStateForDate(t, dateStr) : (t.state || 'idle');
+  if (taskState !== 'running') return null;
+  const worked = getRealWorkedSecs(t, dateStr);
+  const remaining = Math.max(t.allocSecs - worked, 0);
+  if (remaining === 0) return null;
+  const endMs = Date.now() + (remaining * 1000);
   const endDate = new Date(endMs);
   return endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
@@ -4927,12 +5041,11 @@ document.getElementById('workEndTime')?.addEventListener('change', e => {
 });
 
 document.addEventListener('click', e=>{
-  if (openTip && !e.target.closest('.brk-marker') && !e.target.closest('.brk-tip')) closeTip();
+  if (openTip && !e.target.closest('.brk-seg') && !e.target.closest('.brk-tip')) closeTip();
 });
 
 function addFlowTask() {
   const name=document.getElementById('inp-name').value.trim();
-  const goal=document.getElementById('inp-goal').value.trim();
   const isUntimed = document.querySelector('.task-type-btn.active').dataset.type === 'untimed';
   const hours = isUntimed ? 0 : parseInt(document.getElementById('inp-dur-hours').value) || 0;
   const minutes = isUntimed ? 0 : parseInt(document.getElementById('inp-dur-minutes').value) || 0;
@@ -4960,8 +5073,6 @@ function addFlowTask() {
   const taskObj = { 
     id: Date.now() + Math.random(),
     name, 
-    goal: goal || '',
-    goalStatus: '',
     allocSecs: dur * 60, 
     state: 'idle', 
     segments: [], 
@@ -5324,334 +5435,6 @@ function handleDataAction(action) {
     clearAllFlowTasks();
   }
 }
-
-function getOfflineHtmlSource() {
-  const rawHtml = document.documentElement.outerHTML;
-  const parser = new DOMParser();
-  const offlineDoc = parser.parseFromString(rawHtml, 'text/html');
-
-  offlineDoc.querySelectorAll('link[rel="manifest"], link[href^="https://fonts.googleapis.com"], script[src*="html2pdf.bundle.min.js"]').forEach(el => el.remove());
-
-  return '<!DOCTYPE html>\n' + offlineDoc.documentElement.outerHTML;
-}
-
-function downloadHtmlCopy() {
-  const htmlContent = getOfflineHtmlSource();
-  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-
-  anchor.href = url;
-  anchor.download = 'tempow-offline.html';
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
-
-  const notice = document.getElementById('downloadNotice');
-  if (notice) {
-    notice.textContent = 'Downloaded local HTML copy. Open the saved file in your browser for offline use.';
-  }
-}
-
-let selectedWindows = [];
-let currentWindowDrag = { start: null, end: null, isDrawing: false };
-
-function initializeWindowsClock() {
-  const svg = document.getElementById('windowsClock');
-  if (!svg) return;
-  const hourMarkersGroup = document.getElementById('hourMarkers');
-  const centerX = 140;
-  const centerY = 140;
-  const radius = 100;
-
-  hourMarkersGroup.innerHTML = '';
-
-  for (let i = 0; i < 24; i++) {
-    const angle = (i * 360 / 24) - 90;
-    const radian = (angle * Math.PI) / 180;
-
-    const x1 = centerX + Math.cos(radian) * 90;
-    const y1 = centerY + Math.sin(radian) * 90;
-    const x2 = centerX + Math.cos(radian) * 100;
-    const y2 = centerY + Math.sin(radian) * 100;
-
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', x1);
-    line.setAttribute('y1', y1);
-    line.setAttribute('x2', x2);
-    line.setAttribute('y2', y2);
-    line.setAttribute('stroke', 'var(--border2)');
-    line.setAttribute('stroke-width', '1');
-    hourMarkersGroup.appendChild(line);
-
-    const labelX = centerX + Math.cos(radian) * 70;
-    const labelY = centerY + Math.sin(radian) * 70;
-
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.setAttribute('x', labelX);
-    text.setAttribute('y', labelY);
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('dy', '.3em');
-    text.setAttribute('fill', 'var(--muted2)');
-    text.setAttribute('font-size', '11');
-    text.setAttribute('font-weight', '500');
-    text.textContent = i === 0 ? '0' : i;
-    hourMarkersGroup.appendChild(text);
-  }
-
-  renderWindowSegments();
-  svg.addEventListener('click', (e) => handleClockClick(e, svg));
-}
-
-function handleClockClick(e, svg) {
-  const rect = svg.getBoundingClientRect();
-  const x = e.clientX - rect.left - 140;
-  const y = e.clientY - rect.top - 140;
-  const angle = Math.atan2(y, x) * 180 / Math.PI + 90;
-  const normalizedAngle = (angle + 360) % 360;
-  const hour = Math.round((normalizedAngle / 360) * 24) % 24;
-
-  if (currentWindowDrag.start === null) {
-    currentWindowDrag.start = hour;
-    renderWindowSegments();
-  } else if (currentWindowDrag.end === null) {
-    currentWindowDrag.end = hour;
-    if (currentWindowDrag.end > currentWindowDrag.start) {
-      selectedWindows.push({ start: currentWindowDrag.start, end: currentWindowDrag.end });
-    } else {
-      selectedWindows.push({ start: currentWindowDrag.end, end: currentWindowDrag.start });
-    }
-    currentWindowDrag = { start: null, end: null };
-    renderWindowSegments();
-    updateSelectedWindowsList();
-    updateTasksByWindow();
-  }
-}
-
-function renderWindowSegments() {
-  const svg = document.getElementById('windowsClock');
-  if (!svg) return;
-
-  const existingSegments = svg.querySelectorAll('.window-segment, .hour-highlight');
-  existingSegments.forEach(seg => seg.remove());
-
-  const centerX = 140;
-  const centerY = 140;
-  const colors = ['#5de0a8', '#4a8cff', '#f5a623', '#ff5e6c', '#7b9fff', '#a78bfa'];
-
-  selectedWindows.forEach((window, idx) => {
-    const color = colors[idx % colors.length];
-    const startAngle = (window.start * 360 / 24) - 90;
-    const endAngle = (window.end * 360 / 24) - 90;
-    const startRadian = (startAngle * Math.PI) / 180;
-    const endRadian = (endAngle * Math.PI) / 180;
-
-    const x1 = centerX + Math.cos(startRadian) * 85;
-    const y1 = centerY + Math.sin(startRadian) * 85;
-    const x2 = centerX + Math.cos(endRadian) * 85;
-    const y2 = centerY + Math.sin(endRadian) * 85;
-
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    const largeArc = (window.end - window.start) > 12 ? 1 : 0;
-    const d = `M ${centerX} ${centerY} L ${x1} ${y1} A 85 85 0 ${largeArc} 1 ${x2} ${y2} Z`;
-    path.setAttribute('d', d);
-    path.setAttribute('fill', color);
-    path.setAttribute('opacity', '0.3');
-    path.setAttribute('class', 'window-segment');
-    svg.appendChild(path);
-  });
-
-  if (currentWindowDrag.start !== null) {
-    const startAngle = (currentWindowDrag.start * 360 / 24) - 90;
-    const startRadian = (startAngle * Math.PI) / 180;
-    const x = centerX + Math.cos(startRadian) * 85;
-    const y = centerY + Math.sin(startRadian) * 85;
-
-    const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    highlight.setAttribute('cx', x);
-    highlight.setAttribute('cy', y);
-    highlight.setAttribute('r', '8');
-    highlight.setAttribute('fill', '#f5a623');
-    highlight.setAttribute('class', 'hour-highlight');
-    svg.appendChild(highlight);
-
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    label.setAttribute('x', centerX);
-    label.setAttribute('y', centerY - 110);
-    label.setAttribute('text-anchor', 'middle');
-    label.setAttribute('fill', '#f5a623');
-    label.setAttribute('font-size', '12');
-    label.setAttribute('font-weight', '600');
-    label.setAttribute('class', 'hour-highlight');
-    label.textContent = `Start: ${String(currentWindowDrag.start).padStart(2, '0')}:00 - Click end hour`;
-    svg.appendChild(label);
-  }
-}
-
-function updateSelectedWindowsList() {
-  const list = document.getElementById('selectedWindowsList');
-  if (!list) return;
-
-  if (selectedWindows.length === 0) {
-    list.innerHTML = '<p style="color: var(--muted2); font-size: 11px; text-align: center; padding: 16px 0;">No windows selected yet</p>';
-    return;
-  }
-
-  list.innerHTML = selectedWindows.map((window, idx) => {
-    return `<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: var(--surface2); border-radius: 6px; border: 1px solid var(--border);"><span style="font-size: 12px; color: var(--text);"><strong>${String(window.start).padStart(2, '0')}:00</strong> - <strong>${String(window.end).padStart(2, '0')}:00</strong></span><button onclick="removeWindow(${idx})" style="padding: 2px 6px; background: var(--danger); color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 10px;">✕</button></div>`;
-  }).join('');
-}
-
-function removeWindow(idx) {
-  selectedWindows.splice(idx, 1);
-  renderWindowSegments();
-  updateSelectedWindowsList();
-}
-
-function setWindowPreset(preset) {
-  selectedWindows = [];
-  if (preset === '9-17') {
-    selectedWindows.push({ start: 9, end: 17 });
-  } else if (preset === '8-18') {
-    selectedWindows.push({ start: 8, end: 18 });
-  } else if (preset === 'morning') {
-    selectedWindows.push({ start: 6, end: 12 });
-  } else if (preset === 'afternoon') {
-    selectedWindows.push({ start: 12, end: 18 });
-  }
-  renderWindowSegments();
-  updateSelectedWindowsList();
-}
-
-function addCustomWindow() {
-  const startInput = document.getElementById('windowStartHour');
-  const endInput = document.getElementById('windowEndHour');
-  const start = parseInt(startInput.value);
-  const end = parseInt(endInput.value);
-
-  if (isNaN(start) || isNaN(end) || start < 0 || start > 23 || end < 0 || end > 23) {
-    alert('Please enter valid hours (0-23)');
-    return;
-  }
-
-  if (start === end) {
-    alert('Start and end times must be different');
-    return;
-  }
-
-  if (start > end) {
-    selectedWindows.push({ start: end, end: start });
-  } else {
-    selectedWindows.push({ start, end });
-  }
-
-  startInput.value = 9;
-  endInput.value = 17;
-  renderWindowSegments();
-  updateSelectedWindowsList();
-}
-
-function openWindowsModal() {
-  const modal = document.getElementById('windowsModal');
-  modal.style.display = 'flex';
-  selectedWindows = JSON.parse(localStorage.getItem('tempow_time_windows') || '[]');
-  setTimeout(() => {
-    initializeWindowsClock();
-    updateTasksByWindow();
-  }, 100);
-}
-
-function closeWindowsModal() {
-  const modal = document.getElementById('windowsModal');
-  modal.style.display = 'none';
-}
-
-function saveWindows() {
-  localStorage.setItem('tempow_time_windows', JSON.stringify(selectedWindows));
-  updateWindowsDisplay();
-  closeWindowsModal();
-}
-
-function updateWindowsDisplay() {
-  const display = document.getElementById('windowsDisplay');
-  const windows = JSON.parse(localStorage.getItem('tempow_time_windows') || '[]');
-
-  if (windows.length === 0) {
-    display.innerHTML = '<p style="color: var(--muted2);">No time windows set</p>';
-    return;
-  }
-
-  const now = new Date();
-  const currentHour = now.getHours();
-
-  let html = '<div style="display: grid; gap: 6px;">';
-  let totalFreeHours = 0;
-
-  windows.forEach(window => {
-    const hours = window.end - window.start;
-    totalFreeHours += hours;
-    const isCurrentWindow = currentHour >= window.start && currentHour < window.end;
-    const currentStyle = isCurrentWindow ? 'color: var(--active); font-weight: 600;' : '';
-    html += `<div style="${currentStyle}font-size: 11px; padding: 4px 8px; background: rgba(93,224,168,0.1); border-radius: 4px; border-left: 3px solid var(--active);">${String(window.start).padStart(2, '0')}:00 - ${String(window.end).padStart(2, '0')}:00 (${hours}h)</div>`;
-  });
-
-  html += `<div style="font-size: 11px; margin-top: 8px; padding: 8px; background: var(--surface2); border-radius: 4px; border: 1px solid var(--border);"><strong>Total Free Time:</strong> ${totalFreeHours}h per day</div>`;
-  html += '</div>';
-  display.innerHTML = html;
-}
-
-function toggleWindowsDisplay() {
-  const display = document.getElementById('windowsDisplay');
-  const toggleBtn = document.querySelector('[onclick="toggleWindowsDisplay()"]');
-  
-  if (!display) return;
-  
-  if (display.style.display === 'none' || !display.style.display) {
-    display.style.display = 'block';
-    if (toggleBtn) toggleBtn.style.transform = 'rotate(90deg)';
-  } else {
-    display.style.display = 'none';
-    if (toggleBtn) toggleBtn.style.transform = 'rotate(0deg)';
-  }
-}
-
-function updateTasksByWindow() {
-  const list = document.getElementById('tasksByWindowList');
-  if (!list) return;
-  const windows = selectedWindows;
-  if (windows.length === 0) {
-    list.innerHTML = '<p style="color: var(--muted2); font-size: 10px; text-align: center; padding: 12px 0;">No windows defined yet</p>';
-    return;
-  }
-  let html = '';
-  windows.forEach((window, idx) => {
-    const windowTasksKey = `tempow_window_${idx}_tasks`;
-    const windowTasks = JSON.parse(localStorage.getItem(windowTasksKey) || '[]');
-    html += `<div style="padding: 10px; background: rgba(93,224,168,0.08); border-radius: 6px; border-left: 3px solid var(--active);">`;
-    html += `<div style="font-size: 11px; font-weight: 600; color: var(--active); margin-bottom: 6px;">${String(window.start).padStart(2, '0')}:00 - ${String(window.end).padStart(2, '0')}:00 (${window.end - window.start}h)</div>`;
-    if (windowTasks.length === 0) {
-      html += `<p style="font-size: 10px; color: var(--muted2);">No tasks assigned</p>`;
-    } else {
-      windowTasks.forEach(task => {
-        html += `<div style="font-size: 10px; color: var(--text); padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">\u2022 ${task}</div>`;
-      });
-    }
-    html += '</div>';
-  });
-  list.innerHTML = html;
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-  setTimeout(updateWindowsDisplay, 500);
-});
-
-window.addEventListener('click', (e) => {
-  const windowsModal = document.getElementById('windowsModal');
-  if (e.target === windowsModal) {
-    closeWindowsModal();
-  }
-});
 
 function toggleDatePicker() {
   const dateInput = document.getElementById('timerDateFilter');
@@ -6020,14 +5803,25 @@ function saveTaskNotes() {
   if (!notesModalTaskId) return;
   const t = flowTasks.find(x => x.id === notesModalTaskId);
   if (!t) return;
-  
+
   const notes = document.getElementById('notesInput').value.trim();
-  t.notes = notes;
-  
+  const targetName = String(t.name || '').trim().toLowerCase();
+
+  allTasks.forEach(task => {
+    if (!task || !task.name) return;
+    if (String(task.name).trim().toLowerCase() === targetName) {
+      task.notes = notes;
+    }
+  });
+
+  flowTasks = allTasks;
+  calendarTasks = allTasks;
   saveFlowData();
   closeNotesModal();
-  
-  // Show confirmation
+  renderFlowList();
+  renderCalendarView();
+  renderTodaysTasks();
+
   const btn = document.querySelector('#notesModal .btn-confirm');
   if (btn) {
     const originalText = btn.textContent;
@@ -6219,12 +6013,11 @@ function markDone(id) {
     live.secs = getSegmentSecs(live);
     live.endTs = Date.now();
   }
-  t.completedAt = Date.now();
   setCurrentTaskState(t, 'done');
+  stopRepeatingAlarm();
   playDing();
   showDoneBanner(t.name);
   autoSyncCompletedTask(t);
-  stopRepeatingAlarm();
   renderFlowList();
   saveFlowData();
   closeDropdownAfterAction();
@@ -6233,8 +6026,9 @@ function markDone(id) {
 function markUntimeTaskDone(id) {
   const t = flowTasks.find(x => x.id===id);
   if (!t || !t.isUntimed) return;
-  t.completedAt = Date.now();
+  
   setCurrentTaskState(t, 'done');
+  stopRepeatingAlarm();
   playDing();
   showDoneBanner(t.name);
   autoSyncCompletedTask(t);
@@ -6242,7 +6036,6 @@ function markUntimeTaskDone(id) {
   saveFlowData();
   closeDropdownAfterAction();
 }
-
 
 function deleteFlowTask(id) {
   const t = flowTasks.find(x => x.id === id);
@@ -6318,11 +6111,7 @@ function ensureTick() {
         if (live) { live.secs++; any = true; }
 
         if (taskState === 'running' && getRealWorkedSecs(t, currentDateStr) >= t.allocSecs) {
-          if (live) {
-            live.secs = t.allocSecs;
-            live.endTs = live.startTs ? (live.startTs + t.allocSecs * 1000) : Date.now();
-          }
-          t.completedAt = t.completedAt || Date.now();
+          if (live) live.endTs = Date.now();
           setCurrentTaskState(t, 'done');
           autoSyncCompletedTask(t);
           playDing();
@@ -6355,13 +6144,8 @@ function ensureTick() {
         }
       }
     });
-    if (!any) {
-      clearInterval(globalTick); globalTick = null;
-      stopVisualLoop();
-    } else {
-      updateLiveFlow(); updateFlowStats();
-      startVisualLoop();
-    }
+    if (!any) { clearInterval(globalTick); globalTick = null; }
+    else { updateLiveFlow(); updateFlowStats(); }
   }, 1000);
 }
 
@@ -6396,72 +6180,6 @@ function playDing() {
       osc.start(s); osc.stop(s + n.dur + 0.05);
     });
   } catch(e) {}
-}
-
-// Visual RAF-driven loop for smooth updates synchronized to paint
-let visualLoopId = null;
-let visualLastTs = 0;
-// Debug overlay toggle (disabled in production)
-const _debugVisualOverlay = false;
-
-function ensureDebugOverlay() {
-  if (!document) return;
-  if (document.getElementById('debugVisualOverlay')) return;
-  const d = document.createElement('div');
-  d.id = 'debugVisualOverlay';
-  d.style.position = 'fixed';
-  d.style.right = '12px';
-  d.style.top = '12px';
-  d.style.zIndex = '99999';
-  d.style.background = 'rgba(0,0,0,0.6)';
-  d.style.color = 'white';
-  d.style.fontSize = '12px';
-  d.style.padding = '8px 10px';
-  d.style.borderRadius = '6px';
-  d.style.pointerEvents = 'none';
-  d.style.fontFamily = 'monospace';
-  document.body.appendChild(d);
-}
-
-function updateDebugOverlay() {
-  if (!_debugVisualOverlay) {
-    const el = document.getElementById('debugVisualOverlay');
-    if (el) el.remove();
-    return;
-  }
-  ensureDebugOverlay();
-  const el = document.getElementById('debugVisualOverlay');
-  if (!el) return;
-  const t = flowTasks.find(x => getCurrentTaskState(x) === 'running' || getCurrentTaskState(x) === 'paused');
-  if (!t) { el.style.display = 'none'; return; }
-  el.style.display = 'block';
-  el.innerHTML = '';
-}
-function startVisualLoop() {
-  if (visualLoopId) return;
-  function loop(ts) {
-    if (!visualLastTs) visualLastTs = ts;
-    const dt = ts - visualLastTs;
-    // throttle to ~12 FPS (~80ms) which is enough for smooth bar animation
-    if (dt >= 80) {
-      try { updateLiveFlow(); } catch (e) { console.error('updateLiveFlow error', e); }
-      try { updateProgressBarsSmooth(); } catch (e) { console.error('updateProgressBarsSmooth error', e); }
-      try { updateDebugOverlay(); } catch (e) { }
-      visualLastTs = ts;
-    }
-    // continue loop only if there are active tasks
-    if (flowTasks.some(t => getCurrentTaskState(t) === 'running' || getCurrentTaskState(t) === 'paused')) {
-      visualLoopId = requestAnimationFrame(loop);
-    } else {
-      visualLoopId = null; visualLastTs = 0;
-    }
-  }
-  visualLoopId = requestAnimationFrame(loop);
-}
-
-function stopVisualLoop() {
-  if (visualLoopId) cancelAnimationFrame(visualLoopId);
-  visualLoopId = null; visualLastTs = 0;
 }
 
 let _alarmInterval = null;
@@ -6567,40 +6285,26 @@ function toggleTip(taskId, segIdx, segEl, event, dateStr = null) {
 // ── Bar rendering ─────────────────────────────────────
 function buildBarHTML(t, dateStr = null) {
   const tb = getRealBreakSecs(t, dateStr);
-  // Keep the task bar within the original allocated time.
-  // Breaks should be deducted from the available work time, not extend the ending time.
-  const span = Math.max(t.allocSecs, 1);
+  const span = Math.max(t.allocSecs + tb, 1);
   const taskState = dateStr ? getTaskStateForDate(t, dateStr) : (t.state || 'idle');
   const segments = dateStr ? getTaskSegmentsForDate(t, dateStr) : (t.segments || []);
-  // Determine anchor (first work start) for mapping segments into the allocated window
-  const firstWorkStartTs = segments.reduce((min, seg) => {
-    if (seg.type !== 'work' || !seg.startTs) return min;
-    return min === null || seg.startTs < min ? seg.startTs : min;
-  }, null);
-  const startMs = firstWorkStartTs || Date.now();
-
-  // Work progress: continuous bar from left representing total worked / allocSecs
-  const worked = getRealWorkedSecs(t, dateStr);
-  const workPct = Math.min((worked / span) * 100, 100);
-  const workColor = taskState === 'done' ? 'var(--done)' : 'var(--active)';
-  let html = '';
-  html += `<div class="work-progress" style="position:absolute;left:0;width:${workPct.toFixed(3)}%;height:100%;background:${workColor};"></div>`;
-
-  // Break markers: render a small marker at the exact cumulative work point when the break started
-  let cumulativeWork = 0;
+  let html = '', offset = 0;
   segments.forEach((seg, i) => {
+    const segSecs = getSegmentSecs(seg);
+    const w = (segSecs / span) * 100;
+    if (w < 0.01) return;
     if (seg.type === 'work') {
-      cumulativeWork += getSegmentSecs(seg);
-      return;
+      const color = taskState === 'done' ? 'var(--done)' : 'var(--active)';
+      html += `<div style="position:absolute;left:${offset.toFixed(3)}%;width:${w.toFixed(3)}%;height:100%;background:${color};"></div>`;
+    } else {
+      const isLive = !seg.endTs;
+      const isOverrun = seg.overrun;
+      const dateArg = dateStr ? JSON.stringify(dateStr) : 'null';
+      html += `<div class="brk-seg${isLive?' live':''}${isOverrun?' overrun':''}"
+        style="position:absolute;left:${offset.toFixed(3)}%;width:${w.toFixed(3)}%;height:100%;"
+        onclick="toggleTip(${t.id},${i},this,event,${dateArg})"></div>`;
     }
-    const isLive = !seg.endTs;
-    const isOverrun = seg.overrun;
-    const dateArg = dateStr ? JSON.stringify(dateStr) : 'null';
-    const left = (cumulativeWork / span) * 100;
-    const leftClamped = Math.max(0, Math.min(100, left));
-    html += `<div class="brk-marker${isLive?' live':''}${isOverrun?' overrun':''}"
-      style="left:${leftClamped.toFixed(3)}%;"
-      onclick="toggleTip(${t.id},${i},this,event,${dateArg})"></div>`;
+    offset += w;
   });
   
   // Render split points as visual indicators (non-draggable, shown for reference)
@@ -6609,7 +6313,7 @@ function buildBarHTML(t, dateStr = null) {
       const leftPercent = split.position * 100;
       const secsAtSplit = Math.round(split.position * t.allocSecs);
       const fmtTime = fmtF(secsAtSplit);
-      html += `<div class="split-point" style="left:${leftPercent.toFixed(3)}%;pointer-events:none;z-index:20;">
+      html += `<div class="split-point" style="left:${leftPercent.toFixed(3)}%;pointer-events:none;">
         <div class="split-tooltip">Split at ${fmtTime}</div>
       </div>`;
     });
@@ -6677,41 +6381,22 @@ function updateProgressBarsSmooth() {
     const barOuter = card.querySelector('.bar-outer');
     if (!barOuter) return;
     
-    const segments = getTaskSegmentsForDate(t, currentDateStr) || (t.segments || []);
-    const span = Math.max(t.allocSecs, 1);
-    // update work-progress width
-    const workNode = barOuter.querySelector('.work-progress');
     const worked = getRealWorkedSecs(t, currentDateStr);
-    const workPct = Math.min((worked / span) * 100, 100);
-    if (workNode) {
-      const currentWidth = parseFloat(workNode.style.width) || 0;
-      if (Math.abs(currentWidth - workPct) > 0.05) workNode.style.width = workPct + '%';
-    }
-
-    // update break marker positions by cumulative work at each break start
-    const breakNodes = Array.from(barOuter.querySelectorAll('.brk-marker'));
-    let cumulativeWork = 0;
-    let bIdx = 0;
-    segments.forEach(seg => {
-      if (seg.type === 'work') {
-        cumulativeWork += getSegmentSecs(seg);
-        return;
-      }
-      const left = (cumulativeWork / span) * 100;
-      const node = breakNodes[bIdx++];
-      if (node) {
-        node.style.left = Math.max(0, Math.min(100, left)).toFixed(3) + '%';
-        node.classList.toggle('live', !seg.endTs);
-        node.classList.toggle('overrun', !!seg.overrun);
-      }
-    });
-
-    // update split points
-    if (t.splits && t.splits.length > 0) {
-      const splitNodes = Array.from(barOuter.querySelectorAll('.split-point'));
-      t.splits.forEach((split, i) => {
-        const node = splitNodes[i];
-        if (node) node.style.left = (split.position * 100).toFixed(3) + '%';
+    const total = Math.max(t.allocSecs, 1);
+    const percentage = Math.min((worked / total) * 100, 100);
+    
+    // Update active work bar width smoothly
+    const workBars = barOuter.querySelectorAll('div[style*="background"]');
+    if (workBars.length > 0) {
+      workBars.forEach(bar => {
+        const style = bar.getAttribute('style') || '';
+        if (style.includes('var(--active)') || style.includes('var(--done)')) {
+          const currentWidth = parseFloat(bar.style.width);
+          const targetWidth = percentage;
+          if (Math.abs(currentWidth - targetWidth) > 0.1) {
+            bar.style.width = targetWidth + '%';
+          }
+        }
       });
     }
   });
@@ -6727,17 +6412,13 @@ function updateLiveFlow() {
     const worked = getRealWorkedSecs(t, currentDateStr), brk = getRealBreakSecs(t, currentDateStr);
     const live = liveSegment(t, currentDateStr);
     const taskState = getCurrentTaskState(t);
-    const estimatedEndMs = getEstimatedEndMs(t, currentDateStr);
-    const now = Date.now();
-    const isPastEnd = estimatedEndMs !== null && now >= estimatedEndMs;
 
     if (taskState === 'running') {
-      if (worked >= t.allocSecs || isPastEnd) {
+      if (worked >= t.allocSecs) {
         if (live) {
-          live.secs = Math.floor((now - (live.startTs || now)) / 1000);
-          live.endTs = now;
+          live.secs = worked;
+          live.endTs = Date.now();
         }
-        t.completedAt = t.completedAt || Date.now();
         setCurrentTaskState(t, 'done');
         autoSyncCompletedTask(t);
         playDing();
@@ -6758,17 +6439,6 @@ function updateLiveFlow() {
         estEl.textContent = estTime || '—';
       }
     } else if (taskState === 'paused' && live) {
-      if (isPastEnd) {
-        live.secs = Math.floor((now - (live.startTs || now)) / 1000);
-        live.endTs = now;
-        t.completedAt = t.completedAt || Date.now();
-        setCurrentTaskState(t, 'done');
-        autoSyncCompletedTask(t);
-        playDing();
-        showDoneBanner(t.name);
-        rerender = true;
-        return;
-      }
       if (live.breakLimitSecs>0 && !live.overrun) {
         const left = live.breakLimitSecs - live.secs;
         digs.textContent = fmtF(Math.max(left,0)); lbl.textContent = 'break left';
@@ -6781,17 +6451,7 @@ function updateLiveFlow() {
     }
 
     const barTrack = el.querySelector('.bar-track');
-    if (barTrack) {
-        // Only rebuild the bar DOM when the segment structure changes
-        const segments = getTaskSegmentsForDate(t, currentDateStr) || (t.segments || []);
-        const breakCount = segments.filter(s=>s.type==='break').length;
-        const expectedChildCount = 1 + breakCount + (t.splits ? t.splits.length : 0); // work-progress + breaks + splits
-        if (barTrack.children.length !== expectedChildCount) {
-          const newHTML = buildBarHTML(t, currentDateStr);
-          barTrack._lastHTML = newHTML;
-          barTrack.innerHTML = newHTML;
-        }
-    }
+    if (barTrack) barTrack.innerHTML = buildBarHTML(t, currentDateStr);
 
     const isOverrun = taskState==='paused' && live && live.overrun;
     el.classList.toggle('break-overrun', isOverrun);
@@ -6884,8 +6544,8 @@ function renderFlowList() {
   // Sort tasks: running > paused (break) > idle > done (FULLY AUTOMATIC)
   const sortedTasks = [...filteredTasks].sort((a, b) => {
     const stateOrder = {running: 0, paused: 1, idle: 2, done: 3};
-    const orderA = stateOrder[getCurrentTaskState(a)] ?? 5;
-    const orderB = stateOrder[getCurrentTaskState(b)] ?? 5;
+    const orderA = stateOrder[getCurrentTaskState(a)] ?? 4;
+    const orderB = stateOrder[getCurrentTaskState(b)] ?? 4;
     if (orderA !== orderB) return orderA - orderB;
 
     const timeA = getTaskScheduleTimestamp(a);
@@ -6902,7 +6562,7 @@ function renderFlowList() {
     const brk = totalBreakSecs(t, currentDateStr);
     const live = liveSegment(t, currentDateStr);
     const breakCount = taskSegments.filter(s=>s.type==='break').length;
-    const remaining = taskState === 'done' ? 0 : Math.max(t.allocSecs - worked, 0);
+    const remaining = Math.max(t.allocSecs-worked, 0);
     const isOverrun = taskState==='paused' && live && live.overrun;
 
     let digsText, labelText;
@@ -6930,10 +6590,8 @@ function renderFlowList() {
       digsText = fmtF(remaining); labelText = taskState==='done'?'done':'remaining';
     }
 
-    const pillClass = taskState === 'done' ? (t.goalStatus === 'yes' ? 'pill-done' : t.goalStatus === 'no' ? 'pill-no' : 'pill-done')
-      : {running:'pill-running',paused:'pill-break',idle:'pill-idle'}[taskState] || 'pill-idle';
-    const pillText = taskState === 'done' ? (t.goalStatus === 'yes' ? 'Done' : t.goalStatus === 'no' ? 'Goal missed' : 'Done')
-      : {running:'Running',paused:'Break',idle:'Idle'}[taskState] || 'Idle';
+    const pillClass = {running:'pill-running',paused:'pill-break',done:'pill-done',idle:'pill-idle'}[taskState];
+    const pillText  = {running:'Running',paused:'Break',done:'Done',idle:'Idle'}[taskState];
     const inTray = tray.some(x=>x.id===t.id);
 
     const canDone = (taskState==='running'||taskState==='paused') && worked >= t.allocSecs*0.5;
@@ -6998,7 +6656,7 @@ function renderFlowList() {
     }
     
     // Add common options in dropdown
-    dropdownItems += `<button class="dropdown-item" onclick="openEditTaskName(${t.id})"><span class="btn-icon">✎</span> Edit Name</button>`;
+    dropdownItems += `<button class="dropdown-item" onclick="openEditCalendarTaskModal(${t.id})"><span class="btn-icon">✎</span> Edit Task</button>`;
     dropdownItems += `<button class="dropdown-item" onclick="addToTray(${t.id},'flow')"><span class="btn-icon">⇄</span> Clock</button>`;
     dropdownItems += `<button class="dropdown-item" onclick="exportSingleFlowTask(${t.id})"><span class="btn-icon">↓</span> JSON</button>`;
     dropdownItems += `<button class="dropdown-item" onclick="minimizeTask(${t.id})"><span class="btn-icon">−</span> Minimize</button>`;
@@ -7006,7 +6664,7 @@ function renderFlowList() {
     
     // Build direct action buttons for task controls instead of the dropdown
     let ctrl = visibleBtns;
-    ctrl += `<button class="btn" onclick="openEditTaskName(${t.id})"><span class="btn-icon">✎</span> <span class="btn-text">Edit</span></button>`;
+    ctrl += `<button class="btn" onclick="openEditCalendarTaskModal(${t.id})"><span class="btn-icon">✎</span> <span class="btn-text">Edit</span></button>`;
     if (!t.isUntimed) {
       if (t.isMerged) {
         ctrl += `<button class="btn" onclick="unmergeTask(${t.id})"><span class="btn-icon">⤴</span> <span class="btn-text">Unmerge</span></button>`;
@@ -7042,17 +6700,8 @@ function renderFlowList() {
     } else {
       metaHTML = `<span style="color: var(--muted); font-size: 11px;">No time limit • Checklist item</span>`;
     }
-    if (t.goal) {
-      metaHTML += `<span style="color: var(--text); font-size: 11px; margin-left: 8px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;">🎯 ${t.goal.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
-    }
     if (t.notes) {
       metaHTML += `<span style="color: var(--active); font-size: 11px; margin-left: 8px;">📝 Has notes</span>`;
-    }
-
-    let goalPromptHTML = '';
-    if (t.goal && t.goalStatus) {
-      const goalStateText = t.goalStatus === 'yes' ? 'Hit' : 'Missed';
-      goalPromptHTML = `<div style="font-size: 11px; color: ${t.goalStatus === 'yes' ? 'var(--active)' : '#ff5e6c'}; margin-top: 10px;">🎯 ${t.goal.replace(/</g,'&lt;').replace(/>/g,'&gt;')} — ${goalStateText}</div>`;
     }
     
     card.innerHTML = `
@@ -7067,7 +6716,6 @@ function renderFlowList() {
               </div>
             </div>
           </div>
-          ${goalPromptHTML}
           <div class="timer-block">
             <div class="timer-digits">${digsText}</div>
             <div class="timer-label">${labelText}</div>
@@ -7629,8 +7277,8 @@ function clockFindSlotInWindow(windowId, durationSec) {
   return null;
 }
 
-function clockShowTaskPlacementModal(name, durationSec, color, goal = '') {
-  pendingTaskToAdd = { name, durationSec, color, goal };
+function clockShowTaskPlacementModal(name, durationSec, color) {
+  pendingTaskToAdd = { name, durationSec, color };
   const modalContent = document.getElementById('modalContent');
   modalContent.innerHTML = `<div style="margin-bottom:12px;font-weight:600;color:var(--text)">${name} — ${clockFormatHMS(durationSec)}</div>`;
   const windows = clockGetAvailabilityIntervals();
@@ -7671,7 +7319,7 @@ function clockShowTaskPlacementModal(name, durationSec, color, goal = '') {
 
 function clockCommitTaskToWindow() {
   if (!selectedWindowForTask || !pendingTaskToAdd) return;
-  const { name, durationSec, color, goal } = pendingTaskToAdd;
+  const { name, durationSec, color } = pendingTaskToAdd;
   const slot = clockFindSlotInWindow(selectedWindowForTask, durationSec);
   if (slot === null) {
     alert('Not enough space in selected window.');
@@ -7683,9 +7331,7 @@ function clockCommitTaskToWindow() {
     start: slot,
     duration: durationSec,
     color: color || document.getElementById('taskColor').value,
-    overlap: false,
-    goal: goal || '',
-    goalStatus: ''
+    overlap: false
   };
   clockTasks.push(newTask);
   clockTasks.sort((a, b) => a.start - b.start);
@@ -7741,7 +7387,6 @@ function clockUpdateDurationPreview() {
 
 document.getElementById('addTask')?.addEventListener('click', () => {
   const name = document.getElementById('taskName').value.trim() || 'Task';
-  const goal = document.getElementById('taskGoal').value.trim();
   const h = parseInt(document.getElementById('durationHours').value) || 0;
   const m = parseInt(document.getElementById('durationMinutes').value) || 0;
   const s = parseInt(document.getElementById('durationSeconds').value) || 0;
@@ -7751,7 +7396,7 @@ document.getElementById('addTask')?.addEventListener('click', () => {
     return;
   }
   const color = document.getElementById('taskColor').value;
-  clockShowTaskPlacementModal(name, durationSec, color, goal);
+  clockShowTaskPlacementModal(name, durationSec, color);
 });
 
 document.getElementById('randomColor')?.addEventListener('click', () => {
@@ -8382,39 +8027,6 @@ async function generateAdviceManually() {
   btn.disabled = false;
 }
 
-function getTaskAccountabilityInfo(task) {
-  if (!task.completedAt || getCurrentTaskState(task) !== 'done') {
-    return { status: 'none', label: '-', canConfirm: false, badgeColor: 'var(--muted)' };
-  }
-
-  if (task.completionAccountable === 'yes') {
-    return { status: 'accountable', label: 'Accountable', canConfirm: false, badgeColor: 'var(--done)' };
-  }
-
-  const elapsedMs = Date.now() - task.completedAt;
-  const windowMs = 30 * 60 * 1000;
-  if (elapsedMs > windowMs) {
-    return { status: 'gave-up', label: 'Task dropped, abandoned', canConfirm: false, badgeColor: 'var(--danger)' };
-  }
-
-  return {
-    status: 'pending',
-    label: 'I did it',
-    canConfirm: true,
-    expiresIn: Math.max(0, windowMs - elapsedMs),
-    badgeColor: 'var(--active)'
-  };
-}
-
-function confirmCompletionAccountability(id) {
-  const t = flowTasks.find(x => x.id === id);
-  if (!t) return;
-  t.completionAccountable = 'yes';
-  t.completedAt = t.completedAt || Date.now();
-  saveFlowData();
-  renderReportsPage();
-}
-
 function renderReportsPage() {
   const page = document.getElementById('page-report');
   if (!page) return;
@@ -8564,15 +8176,13 @@ function renderReportsPage() {
       <div style="margin-bottom: 32px;">
         <div style="font-size: 13px; font-weight: 600; color: var(--active); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px;">📋 Detailed Task Breakdown</div>
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
-          <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr 1.1fr; gap: 12px; padding: 14px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 600; letter-spacing: 0.05em;">
+          <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr; gap: 12px; padding: 14px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 600; letter-spacing: 0.05em;">
             <div>Task</div>
             <div>Status</div>
-            <div>Goal</div>
             <div>Worked</div>
             <div>Breaks</div>
             <div>Allocated</div>
             <div>Progress</div>
-            <div>Accountable</div>
           </div>`;
     
     filteredTasks.forEach(t => {
@@ -8580,16 +8190,11 @@ function renderReportsPage() {
       const brk = totalBreakSecs(t);
       const breakCount = t.segments.filter(s => s.type === 'break').length;
       const pct = Math.round((worked / t.allocSecs) * 100);
-      const taskState = getCurrentTaskState(t);
-      const status = taskState === 'done' ? '✓ Done' : taskState === 'running' ? '▶ Running' : taskState === 'paused' ? '⏸ Paused' : '○ Idle';
-      const statusColor = taskState === 'done' ? 'var(--done)' : taskState === 'running' ? 'var(--active)' : taskState === 'paused' ? 'var(--break)' : 'var(--muted)';
-      const accountability = getTaskAccountabilityInfo(t);
-      const accountabilityHtml = accountability.canConfirm
-        ? `<div style="display:flex;flex-direction:column;gap:6px;"><button class="btn done-early" style="width:100%;min-width:0;" onclick="confirmCompletionAccountability(${t.id})">${accountability.label}</button><div style="font-size:10px;color:var(--muted);text-align:center;">${fmtDurF(Math.ceil(accountability.expiresIn/1000))} left</div></div>`
-        : `<span style="display:inline-flex;align-items:center;justify-content:center;width:100%;padding:6px 10px;background:${accountability.badgeColor}20;color:${accountability.badgeColor};border-radius:8px;font-size:11px;font-weight:600;">${accountability.label}</span>`;
+      const status = t.state === 'done' ? '✓ Done' : t.state === 'running' ? '▶ Running' : t.state === 'paused' ? '⏸ Paused' : '○ Idle';
+      const statusColor = t.state === 'done' ? 'var(--done)' : t.state === 'running' ? 'var(--active)' : t.state === 'paused' ? 'var(--break)' : 'var(--muted)';
       
       html += `
-        <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr 1.1fr; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); align-items: center; font-size: 12px;">
+        <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); align-items: center; font-size: 12px;">
           <div>
             <div style="font-weight: 500; color: var(--text);">${t.name}</div>
             <div style="font-size: 10px; color: var(--muted); margin-top: 2px;">${fmtDurF(worked)} / ${fmtDurF(t.allocSecs)}</div>
@@ -8597,7 +8202,6 @@ function renderReportsPage() {
           <div>
             <span style="display: inline-block; padding: 3px 8px; background: ${statusColor}20; color: ${statusColor}; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase;">${status}</span>
           </div>
-          <div style="color: var(--muted2); font-size: 11px;">${t.goal ? t.goal.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '-'}</div>
           <div style="color: var(--active); font-weight: 500;">${fmtDurF(worked)}</div>
           <div style="color: var(--break); font-weight: 500;">${breakCount}x</div>
           <div style="color: var(--muted2);">${fmtDurF(t.allocSecs)}</div>
@@ -8607,7 +8211,6 @@ function renderReportsPage() {
             </div>
             <div style="font-size: 10px; color: var(--muted); text-align: center;">${pct}%</div>
           </div>
-          <div>${accountabilityHtml}</div>
         </div>`;
     });
     
@@ -8751,111 +8354,13 @@ function renderReportsPage() {
           opacity: 0.6;
           cursor: not-allowed;
         }
-      </style>`;
-
-    // ═══ HOURS BY TASK ═══
-    
-    const tasksByName = {};
-    filteredTasks.forEach(t => {
-      if (!tasksByName[t.name]) {
-        tasksByName[t.name] = { workedSecs: 0, allocSecs: 0 };
-      }
-      tasksByName[t.name].workedSecs += totalWorkedSecs(t);
-      tasksByName[t.name].allocSecs += t.allocSecs || 0;
-    });
-    
-    const taskEntries = Object.entries(tasksByName)
-      .sort((a, b) => b[1].workedSecs - a[1].workedSecs);
-    
-    const donutColors = ['#5de0a8', '#4a8cff', '#f5a623', '#ff5e6c', '#a855f7', '#14b8a6', '#fb7185', '#f59e0b'];
-    const circumference = 2 * Math.PI * 88;
-    let donutOffset = 0;
-    const donutSlices = taskEntries.map(([taskName, taskData], idx) => {
-      const { workedSecs, allocSecs } = taskData;
-      const sliceLength = totalWorked > 0 ? (workedSecs / totalWorked) * circumference : 0;
-      const color = donutColors[idx % donutColors.length];
-      const titleText = `${taskName}: ${fmtF(workedSecs)} / ${fmtF(allocSecs)} allocated`;
-      const circle = '<circle cx="120" cy="120" r="88" fill="none" stroke="' + color + '" stroke-width="28" stroke-linecap="round" stroke-dasharray="' + sliceLength + ' ' + Math.max(circumference - sliceLength, 0) + '" stroke-dashoffset="' + donutOffset + '" transform="rotate(-90 120 120)" pointer-events="stroke">' +
-        '<title>' + titleText + '</title>' +
-      '</circle>';
-      donutOffset -= sliceLength;
-      return circle;
-    }).join('');
-    
-    const legendRows = taskEntries.map(([taskName, taskData], idx) => {
-      const { workedSecs, allocSecs } = taskData;
-      const percentage = totalWorked > 0 ? Math.round((workedSecs / totalWorked) * 100) : 0;
-      const color = donutColors[idx % donutColors.length];
-      return '<div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">' +
-        '<div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">' +
-          '<span style="width: 10px; height: 10px; border-radius: 999px; background: ' + color + '; display: inline-block;"></span>' +
-          '<div style="font-size: 13px; font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + taskName + '</div>' +
-        '</div>' +
-        '<div style="display: grid; gap: 4px; text-align: right;">' +
-          '<div style="font-size: 12px; color: var(--muted2);">' + fmtF(workedSecs) + ' / ' + fmtF(allocSecs) + '</div>' +
-          '<div style="font-size: 12px; color: var(--muted2); font-weight: 600;">' + percentage + '%</div>' +
-        '</div>' +
-      '</div>';
-    }).join('');
-    
-    html += `
-      <div style="margin-bottom: 32px;">
-        <div style="font-size: 13px; font-weight: 600; color: var(--active); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px;">⏱ Hours by Task</div>
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
-          <div style="display: grid; gap: 24px;">
-            <div style="display: grid; grid-template-columns: minmax(260px, 280px) 1fr; gap: 24px; align-items: center;">
-              <div style="position: relative; width: 100%; max-width: 280px; margin: 0 auto;">
-                <svg viewBox="0 0 240 240" style="width: 100%; height: auto; display: block;">
-                  <circle cx="120" cy="120" r="88" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="28" />
-                  ${donutSlices}
-                  <circle cx="120" cy="120" r="60" fill="var(--surface)" />
-                </svg>
-                <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text);">
-                  <div style="font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);">Total Time</div>
-                  <div style="font-size: 24px; font-weight: 700; margin-top: 6px;">${fmtF(totalWorked)}</div>
-                </div>
-              </div>
-              <div style="display: grid; gap: 10px;">
-                <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;">Task distribution</div>
-                ${legendRows}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-top: 18px;">
-          <div style="display: grid; grid-template-columns: 2.5fr 1.2fr 1fr; gap: 12px; padding: 14px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 600; letter-spacing: 0.05em;">
-            <div>Task Name</div>
-            <div>Total Hours</div>
-            <div>% of Total</div>
-          </div>`;
-    
-    if (taskEntries.length === 0) {
-      html += `<div style="padding: 32px 16px; text-align: center; color: var(--muted); font-size: 12px;">No tasks to display</div>`;
-    } else {
-      taskEntries.forEach(([taskName, workedSecs], idx) => {
-        const percentage = totalWorked > 0 ? Math.round((workedSecs / totalWorked) * 100) : 0;
-        const hours = workedSecs / 3600;
-        const rowBg = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
-        
-        html += `<div style="display: grid; grid-template-columns: 2.5fr 1.2fr 1fr; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); align-items: center; font-size: 12px; background: ${rowBg};">
-          <div>
-            <div style="font-weight: 500; color: var(--text);">${taskName}</div>
-          </div>
-          <div style="color: var(--active); font-weight: 600;">${hours.toFixed(2)} h</div>
-          <div style="color: var(--muted2);">${percentage}%</div>
-        </div>`;
-      });
-    }
-    
-    html += `</div>
-      </div>
+      </style>
 
       <!-- ═══ EXPORT OPTIONS ═══ -->
       <div style="padding-top: 20px; border-top: 1px solid var(--border);">
         <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; font-weight: 600;">📥 Download Report</div>
         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
           <button class="data-btn" onclick="printReportToPDF()" style="padding: 9px 16px;">🖨️ Print Full Report (PDF)</button>
-          <button class="data-btn" onclick="downloadHtmlCopy()" style="padding: 9px 16px;">⬇ Save Offline HTML</button>
         </div>
       </div>`;
   }
@@ -9412,7 +8917,6 @@ function exportDetailedReport() {
     taskDetails: flowTasks.map(t => ({
       id: t.id,
       name: t.name,
-      goal: t.goal || '',
       state: t.state,
       allocatedSecs: t.allocSecs,
       workedSecs: totalWorkedSecs(t),
@@ -9640,31 +9144,6 @@ function renderValuesPage() {
         </div>
       </div>
 
-      <!-- ═══ GOAL CLARITY SECTION ═══ -->
-      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-        <div style="display: flex; align-items: flex-start; gap: 12px;">
-          <div style="font-size: 28px; min-width: 40px;">📌</div>
-          <div style="flex: 1;">
-            <h3 style="font-size: 15px; font-weight: 600; color: var(--text); margin: 0 0 8px 0;">Why Task Goals Matter</h3>
-            <p style="font-size: 13px; color: var(--text); line-height: 1.7; margin: 0 0 12px 0;">
-              Every task should answer the question: what does success look like in this time block? Goals turn raw hours into meaningful outcomes.
-            </p>
-            <ul style="font-size: 13px; color: var(--muted); line-height: 1.7; margin: 0; padding-left: 20px;">
-              <li>Writer: write 10 pages.</li>
-              <li>Runner: complete 100 miles.</li>
-              <li>YouTuber: record or edit the full video.</li>
-              <li>Trader: take three positions or finish a strategy draft.</li>
-            </ul>
-            <p style="font-size: 12px; color: var(--muted2); line-height: 1.7; margin: 12px 0 0 0;">
-              If you hit the goal before the timer ends, keep working until the allocated time is up. If the time ends before the goal is reached, keep going until the goal is complete.
-            </p>
-            <p style="font-size: 12px; color: var(--muted2); line-height: 1.7; margin: 12px 10px 0 0;">
-              When the task finishes, confirm completion on the report page by clicking “I did it” within 30 minutes. If you do not confirm, the task becomes recorded as dropped and abandoned.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <!-- ═══ VALUE 4: INEVITABLE RECOGNITION ═══ -->
       <div style="background: var(--done-dim); border: 1px solid var(--done); border-radius: 12px; padding: 20px; margin-bottom: 40px;">
         <div style="display: flex; align-items: flex-start; gap: 12px;">
@@ -9803,41 +9282,21 @@ function saveFlowData() {
 
 async function syncElapsedTime(overrideElapsedSeconds) {
   let updated = false;
-  const currentDateStr = getContextDateStr();
 
   // For each running or paused task, recalculate elapsed based on real-world time
   flowTasks.forEach(t => {
-    const taskState = getCurrentTaskState(t);
-    const live = liveSegment(t, currentDateStr);
-    if (live && live.startTs) {
-      // Calculate real elapsed time in seconds from the actual start timestamp
-      const realElapsedMs = Date.now() - live.startTs;
-      const realElapsedSecs = Math.floor(realElapsedMs / 1000);
-
-      if (taskState === 'running' && realElapsedSecs >= t.allocSecs) {
-        live.secs = t.allocSecs;
-        live.endTs = live.startTs + t.allocSecs * 1000;
-        t.completedAt = t.completedAt || live.endTs || Date.now();
-        setCurrentTaskState(t, 'done');
-        updated = true;
-        return;
-      }
-
-      if (taskState === 'done' || taskState === 'awaitingGoal') {
-        // Ensure completed tasks do not retain an open live segment after reload.
-        const finalSecs = getSegmentSecs(live);
-        if (finalSecs !== live.secs || !live.endTs) {
-          live.secs = finalSecs;
-          live.endTs = live.startTs + finalSecs * 1000;
-          t.completedAt = t.completedAt || live.endTs || Date.now();
+    if (t.state === 'running' || t.state === 'paused') {
+      const live = liveSegment(t);
+      if (live && live.startTs) {
+        // Calculate real elapsed time in seconds from the actual start timestamp
+        const realElapsedMs = Date.now() - live.startTs;
+        const realElapsedSecs = Math.floor(realElapsedMs / 1000);
+        
+        // Set secs to the real elapsed time (not additive, absolute)
+        if (realElapsedSecs > live.secs) {
+          live.secs = realElapsedSecs;
           updated = true;
         }
-      }
-
-      // Set secs to the real elapsed time for active running/paused segments (not additive, absolute)
-      if ((taskState === 'running' || taskState === 'paused') && realElapsedSecs > (live.secs || 0)) {
-        live.secs = realElapsedSecs;
-        updated = true;
       }
     }
   });
@@ -9982,8 +9441,6 @@ async function loadFlowData() {
         }
         if (!t.dateAdded) t.dateAdded = Date.now();
         if (!t.splits) t.splits = []; // Initialize splits array for split timing feature
-        if (!('goal' in t)) t.goal = '';
-        if (!('completionAccountable' in t)) t.completionAccountable = '';
         if (!t.id) {
           console.warn('Task missing ID during load - generating new ID:', t);
           t.id = 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -9992,23 +9449,36 @@ async function loadFlowData() {
       });
       flowTasks = allTasks;  // Sync alias
       calendarTasks = allTasks;  // Sync alias
-      // Convert any legacy awaitingGoal state into done so timer page no longer prompts.
-      allTasks.forEach(task => {
-        if (task.state === 'awaitingGoal') {
-          task.state = 'done';
-          task.completedAt = task.completedAt || Date.now();
-        }
-      });
       // Migrate any older multi-date calendar tasks into separate per-date tasks
       if (typeof splitMultiDateCalendarTasks === 'function') {
         splitMultiDateCalendarTasks();
       }
       console.log('Successfully loaded', allTasks.length, 'tasks');
       hasSuccessfullyLoaded = true;
-      await syncElapsedTime();
     }
-  } catch (e) {
+
+    if (window.api && window.api.getElapsedTime) {
+      try {
+        const timeResult = await window.api.getElapsedTime();
+        if (timeResult.success && timeResult.elapsedSeconds > 0) {
+          // App was closed; recalculate all segment times based on their saved startTs
+          await syncElapsedTime();
+        }
+      } catch (timeErr) {
+        console.error('Error syncing elapsed time:', timeErr);
+      }
+    }
+    
+    updateFlowLastSaved(data.savedAt);
+    
+    // ===== MARK SUCCESSFUL LOAD - THIS UNLOCKS SAVING =====
+    hasSuccessfullyLoaded = true;
+    console.log('Safe Persistence: Data load complete. Auto-save is now enabled.');
+    
+  } catch(e) {
     console.error('Critical error loading flow data:', e);
+    console.error('Stack trace:', e.stack);
+    // Mark as loaded anyway to prevent the auto-save timer from wiping data
     hasSuccessfullyLoaded = true;
   }
 }
@@ -10626,7 +10096,10 @@ function restoreCollapsibleStates() {
     syncElapsedTime();
   }, 5000);
   
-  // Visual updates are driven by RAF when tasks are active (startVisualLoop())
+  // Smooth progress bar animation every 200ms for continuous visual feedback
+  setInterval(() => {
+    updateProgressBarsSmooth();
+  }, 200);
   
   // Auto-save task data every 5 seconds
   // ===== SAFE PERSISTENCE: Only saves if data has been successfully loaded =====
@@ -11490,24 +10963,68 @@ function closeDayDetailsModal() {
 // Track which task is being edited
 let editingCalendarTaskId = null;
 
+function updateEditCalendarDurationDisplay() {
+  const hours = parseInt(document.getElementById('editCalTaskDurationHours')?.value) || 0;
+  const minutes = parseInt(document.getElementById('editCalTaskDurationMinutes')?.value) || 0;
+  const totalMinutes = hours * 60 + minutes;
+  const display = document.getElementById('editCalTaskDurationDisplay');
+
+  if (!display) return;
+
+  let displayText = '';
+  if (hours > 0 && minutes > 0) {
+    displayText = `${hours}h ${minutes}m (${totalMinutes} minutes)`;
+  } else if (hours > 0) {
+    displayText = `${hours}h (${totalMinutes} minutes)`;
+  } else if (minutes > 0) {
+    displayText = `${minutes} minutes`;
+  } else {
+    displayText = '0 minutes';
+  }
+
+  display.textContent = displayText;
+}
+
 function openEditCalendarTaskModal(taskId) {
   editingCalendarTaskId = taskId;
   const task = allTasks.find(t => t.id === taskId);
   if (!task) return;
-  
-  // Fill in the form
-  document.getElementById('editCalTaskName').value = task.name || '';
+
+  const dateValue = task.scheduledDate || (Array.isArray(task.scheduledDates) ? task.scheduledDates[0] : '') || '';
   const timeStr = String(task.hour || 0).padStart(2, '0') + ':' + String(task.minute || 0).padStart(2, '0');
+  const durationMinutes = Math.max(0, Math.round((task.allocSecs || task.duration || 60) / 60));
+  const durationHours = Math.floor(durationMinutes / 60);
+  const remainderMinutes = durationMinutes % 60;
+
+  document.getElementById('editCalTaskName').value = task.name || '';
+  document.getElementById('editCalTaskDate').value = dateValue;
   document.getElementById('editCalTaskTime').value = timeStr;
+  document.getElementById('editCalTaskNotes').value = task.notes || '';
+  document.getElementById('editCalTaskUntimed').checked = Boolean(task.isUntimed);
+  document.getElementById('editCalTaskDurationHours').value = String(durationHours);
+  document.getElementById('editCalTaskDurationMinutes').value = String(remainderMinutes || 0);
+  document.getElementById('editCalTaskDurationField').style.opacity = task.isUntimed ? '0.5' : '1';
+  document.getElementById('editCalTaskDurationHours').disabled = Boolean(task.isUntimed);
+  document.getElementById('editCalTaskDurationMinutes').disabled = Boolean(task.isUntimed);
   updateEditCalendarTimeLabel();
-  
-  // Show the modal
+  updateEditCalendarDurationDisplay();
+
   document.getElementById('editCalendarTaskModal').classList.add('open');
   document.getElementById('editCalTaskName').focus();
 }
 
 function closeEditCalendarTaskModal() {
   document.getElementById('editCalendarTaskModal').classList.remove('open');
+  document.getElementById('editCalTaskName').value = '';
+  document.getElementById('editCalTaskDate').value = '';
+  document.getElementById('editCalTaskTime').value = '09:00';
+  document.getElementById('editCalTaskNotes').value = '';
+  document.getElementById('editCalTaskUntimed').checked = false;
+  document.getElementById('editCalTaskDurationHours').value = '0';
+  document.getElementById('editCalTaskDurationMinutes').value = '60';
+  document.getElementById('editCalTaskDurationHours').disabled = false;
+  document.getElementById('editCalTaskDurationMinutes').disabled = false;
+  updateEditCalendarDurationDisplay();
   editingCalendarTaskId = null;
 }
 
@@ -11521,32 +11038,55 @@ function updateEditCalendarTimeLabel() {
 
 function saveEditedCalendarTask() {
   if (!editingCalendarTaskId) return;
-  
+
   const task = allTasks.find(t => t.id === editingCalendarTaskId);
   if (!task) return;
-  
+
   const newName = document.getElementById('editCalTaskName').value.trim();
+  const dateStr = document.getElementById('editCalTaskDate').value || '';
   const timeStr = document.getElementById('editCalTaskTime').value || '09:00';
+  const notes = document.getElementById('editCalTaskNotes').value.trim();
+  const isUntimed = document.getElementById('editCalTaskUntimed').checked;
+  const durationHours = parseInt(document.getElementById('editCalTaskDurationHours').value) || 0;
+  const durationMinutes = parseInt(document.getElementById('editCalTaskDurationMinutes').value) || 0;
+  const totalMinutes = durationHours * 60 + durationMinutes;
   const [hourPart, minutePart] = timeStr.split(':');
   const hour = parseInt(hourPart, 10) || 0;
   const minute = parseInt(minutePart, 10) || 0;
-  
+
   if (!newName) {
     alert('Please enter a task name');
     return;
   }
-  
-  // Update task
+
+  if (!isUntimed && totalMinutes > 240) {
+    alert('Maximum task duration is 4 hours (240 minutes)');
+    return;
+  }
+
   task.name = newName;
+  task.notes = notes;
   task.hour = hour;
   task.minute = minute;
-  
-  // Save and sync
+  task.isUntimed = isUntimed;
+  task.scheduledDate = dateStr || task.scheduledDate || '';
+  if (dateStr) {
+    task.scheduledDates = [dateStr];
+  }
+
+  if (isUntimed) {
+    task.allocSecs = 0;
+    task.duration = 0;
+  } else {
+    task.duration = totalMinutes;
+    task.allocSecs = totalMinutes * 60;
+  }
+
   saveFlowData();
   flowTasks = allTasks;
   calendarTasks = allTasks;
-  
-  // Close both modals and refresh views
+  renderTaskNameSuggestions();
+
   closeEditCalendarTaskModal();
   closeDayDetailsModal();
   renderCalendarView();
@@ -11555,12 +11095,133 @@ function saveEditedCalendarTask() {
 }
 
 // Add event listener for time input
+function renderTaskNameSuggestions() {
+  const suggestions = [...new Set((allTasks || []).map(task => task && task.name ? String(task.name).trim() : '').filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b))
+    .slice(0, 18);
+
+  const datalist = document.getElementById('taskNameSuggestions');
+  if (!datalist) return;
+
+  datalist.innerHTML = suggestions.map(name => `<option value="${name.replace(/"/g, '&quot;')}"></option>`).join('');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   const editTimeInput = document.getElementById('editCalTaskTime');
   if (editTimeInput) {
     editTimeInput.addEventListener('input', updateEditCalendarTimeLabel);
   }
+
+  const editDurationHoursInput = document.getElementById('editCalTaskDurationHours');
+  const editDurationMinutesInput = document.getElementById('editCalTaskDurationMinutes');
+  const editUntimedInput = document.getElementById('editCalTaskUntimed');
+
+  if (editDurationHoursInput) {
+    editDurationHoursInput.addEventListener('input', updateEditCalendarDurationDisplay);
+  }
+
+  if (editDurationMinutesInput) {
+    editDurationMinutesInput.addEventListener('input', updateEditCalendarDurationDisplay);
+  }
+
+  if (editUntimedInput) {
+    editUntimedInput.addEventListener('change', function() {
+      const durationField = document.getElementById('editCalTaskDurationField');
+      const isUntimed = this.checked;
+      const hoursInput = document.getElementById('editCalTaskDurationHours');
+      const minutesInput = document.getElementById('editCalTaskDurationMinutes');
+
+      if (durationField) durationField.style.opacity = isUntimed ? '0.5' : '1';
+      if (hoursInput) hoursInput.disabled = isUntimed;
+      if (minutesInput) minutesInput.disabled = isUntimed;
+    });
+  }
+
+  renderTaskNameSuggestions();
+
+  const quickNotesEditor = document.getElementById('quickNotesEditor');
+  const quickNotesWidget = document.getElementById('quickNotesWidget');
+  const status = document.getElementById('quickNotesStatus');
+  const toggleButton = document.getElementById('quickNotesToggle');
+
+  if (quickNotesEditor) {
+    const saved = localStorage.getItem('tempowQuickNotes');
+    if (saved) {
+      quickNotesEditor.innerHTML = saved;
+    }
+
+    quickNotesEditor.addEventListener('input', function() {
+      saveQuickNotes();
+    });
+
+    quickNotesEditor.addEventListener('blur', function() {
+      saveQuickNotes();
+    });
+  }
+
+  if (quickNotesWidget) {
+    quickNotesWidget.classList.remove('open');
+    localStorage.setItem('tempowQuickNotesOpen', 'false');
+  }
+
+  if (toggleButton) {
+    toggleButton.setAttribute('aria-expanded', 'false');
+  }
+
+  if (status) {
+    status.textContent = 'Auto-saved locally';
+  }
 });
+
+function saveQuickNotes() {
+  const editor = document.getElementById('quickNotesEditor');
+  const status = document.getElementById('quickNotesStatus');
+  if (!editor) return;
+
+  const html = editor.innerHTML.trim();
+  localStorage.setItem('tempowQuickNotes', html);
+  if (status) {
+    status.textContent = 'Auto-saved locally';
+  }
+}
+
+function toggleQuickNotesWidget() {
+  const widget = document.getElementById('quickNotesWidget');
+  const editor = document.getElementById('quickNotesEditor');
+  const toggleButton = document.getElementById('quickNotesToggle');
+  if (!widget || !editor || !toggleButton) return;
+
+  const willOpen = !widget.classList.contains('open');
+  widget.classList.toggle('open', willOpen);
+  localStorage.setItem('tempowQuickNotesOpen', String(willOpen));
+  toggleButton.setAttribute('aria-expanded', String(willOpen));
+
+  if (willOpen) {
+    setTimeout(() => editor.focus(), 50);
+  }
+}
+
+function applyQuickNoteCommand(command, value = null) {
+  const editor = document.getElementById('quickNotesEditor');
+  if (!editor) return;
+
+  editor.focus();
+  document.execCommand(command, false, value);
+  saveQuickNotes();
+}
+
+function clearQuickNotes() {
+  const editor = document.getElementById('quickNotesEditor');
+  const status = document.getElementById('quickNotesStatus');
+  if (!editor) return;
+
+  editor.innerHTML = '';
+  localStorage.setItem('tempowQuickNotes', '');
+  if (status) {
+    status.textContent = 'Cleared and auto-saved';
+  }
+  editor.focus();
+}
 
 // Track which task is being sent to another date
 let sendTaskToDateId = null;
@@ -11634,6 +11295,7 @@ function sendTaskToDate() {
   
   // Save and refresh
   saveFlowData();
+  renderTaskNameSuggestions();
   closeSendTaskToDateModal();
   renderCalendarView();
   
@@ -11697,7 +11359,6 @@ function saveCalendarTask() {
   const notes = document.getElementById('calTaskNotes').value.trim();
   
   const selectedDates = calTaskSelectedDates.length > 0 ? [...new Set(calTaskSelectedDates)] : (date ? [date] : []);
-  const goal = document.getElementById('calTaskGoal').value.trim();
   if (!name || selectedDates.length === 0) {
     alert('Please enter task name and select at least one date');
     return;
@@ -11708,8 +11369,6 @@ function saveCalendarTask() {
     tasksToAdd.push({
       id: Date.now() + Math.random(),
       name,
-      goal: goal || '',
-      goalStatus: '',
       scheduledDate: d,
       scheduledDates: [d],
       hour,
@@ -11730,6 +11389,7 @@ function saveCalendarTask() {
   flowTasks = allTasks;  // Sync
   calendarTasks = allTasks;  // Sync
   saveFlowData();  // Save unified data
+  renderTaskNameSuggestions();
   closeCalendarTaskModal();
   renderCalendarView();
   renderFlowList();  // Update timer too
